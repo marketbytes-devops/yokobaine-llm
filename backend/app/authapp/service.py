@@ -6,6 +6,10 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from app.authapp import models, schemas
 from app.core import security, config
+import random
+
+
+otp_store = {}
 
 def create_user(db: Session, user: schemas.UserCreate):
     db_user = db.query(models.User).filter(
@@ -45,21 +49,19 @@ def authenticate_user(db: Session, username: str, password: str):
     )
     return {"access_token": access_token, "token_type": "bearer", "role": user.role}
 
-def send_reset_password_email(email_to: str, token: str):
-    reset_link = f"http://localhost:3000/reset-password?token={token}"
-    
-    server = smtplib.SMTP(config.settings.SMTP_SERVER, config.settings.SMTP_PORT)
-    server.starttls()
+def send_reset_password_email(email_to: str, otp_code: str):    
     try:
+        server = smtplib.SMTP(config.settings.SMTP_SERVER, config.settings.SMTP_PORT)
+        server.starttls()
         server.login(config.settings.SMTP_USERNAME, config.settings.SMTP_PASSWORD)
         
         message = MIMEMultipart("alternative")
-        message["Subject"] = "Password Reset Request"
+        message["Subject"] = "Your Password Reset Code"
         message["From"] = config.settings.SENDER_EMAIL
         message["To"] = email_to
         
-        text = f"Click the link below to reset your password:\n\n{reset_link}"
-        html = f"<p>Click the link below to reset your password:</p><p><a href='{reset_link}'>{reset_link}</a></p>"
+        text = f"Your password reset verification code is:\n\n{otp_code}\n\nUse this code to complete your password reset."
+        html = f"<p>Your password reset verification code is:</p><h2>{otp_code}</h2><p>Use this code to complete your password reset.</p>"
         
         part1 = MIMEText(text, "plain")
         part2 = MIMEText(html, "html")
@@ -69,26 +71,30 @@ def send_reset_password_email(email_to: str, token: str):
         server.sendmail(
             config.settings.SENDER_EMAIL, email_to, message.as_string()
         )
+        server.quit()
     except Exception as e:
         print(f"Failed to send email: {e}")
-    finally:
-        server.quit()
+        raise HTTPException(status_code=500, detail=f"Email completely failed to send! Error: {e}")
+
 
 def process_forgot_password(db: Session, email: str, background_tasks: BackgroundTasks):
     user = db.query(models.User).filter(models.User.email == email).first()
     if not user:
-        # Prevent email scanning by returning ok even if not found
-        return {"msg": "If your email is registered, you will receive a reset link shortly."}
+        raise HTTPException(status_code=404, detail="This email is not registered in the database! Please register first.")
     
-    token = security.create_password_reset_token(email=user.email)
+    otp_code = str(random.randint(1000, 9999))
+    otp_store[user.email] = otp_code
     
-    background_tasks.add_task(send_reset_password_email, user.email, token)
-    return {"msg": "If your email is registered, you will receive a reset link shortly."}
+   
+    send_reset_password_email(user.email, otp_code)
+    return {"msg": "Email sent successfully! Check your inbox."}
 
-def process_reset_password(db: Session, token: str, new_password: str):
-    email = security.verify_password_reset_token(token)
-    if not email:
-        raise HTTPException(status_code=400, detail="Invalid token")
+def process_reset_password(db: Session, email: str, token: str, new_password: str):
+
+    valid_otp = otp_store.get(email)
+    
+    if not valid_otp or valid_otp != token:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset code")
         
     user = db.query(models.User).filter(models.User.email == email).first()
     if not user:
@@ -97,4 +103,8 @@ def process_reset_password(db: Session, token: str, new_password: str):
     hashed_password = security.get_password_hash(new_password)
     user.hashed_password = hashed_password
     db.commit()
+    
+
+    del otp_store[email]
+    
     return {"msg": "Password updated successfully"}

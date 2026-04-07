@@ -1,7 +1,7 @@
 import os
 import sys
 
-# Automatically add the backend directory to python's path so 'app' can be imported easily
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from sqlalchemy.orm import Session
@@ -11,28 +11,34 @@ from app.authapp import models
 def seed_admin():
     db = database.SessionLocal()
     
-    # Check if admin already exists
-    admin_user = db.query(models.User).filter(models.User.email == "admin@yokobaine.com").first()
-    if admin_user:
-        print("Admin user already exists!")
-        return
+   
+    ADMIN_EMAIL = "nithyapradeep047@gmail.com"
+    ADMIN_PASSWORD = "nithya123"
+    
 
-    # Create an admin user
-    hashed_password = security.get_password_hash("admin123")
-    new_admin = models.User(
-        email="admin@yokobaine.com",
-        username="SchoolAdmin",
-        hashed_password=hashed_password,
-        role=models.UserRole.ADMIN,
-        is_active=True
-    )
+    admin_user = db.query(models.User).filter(models.User.email == ADMIN_EMAIL).first()
+    hashed_password = security.get_password_hash(ADMIN_PASSWORD)
+
+    if admin_user:
+      
+        print(f"Updating admin user: {ADMIN_EMAIL}")
+        admin_user.hashed_password = hashed_password
+        admin_user.role = models.UserRole.ADMIN
+        admin_user.is_active = True
+    else:
+      
+        print(f"Creating new admin user: {ADMIN_EMAIL}")
+        new_admin = models.User(
+            email=ADMIN_EMAIL,
+            username="SchoolAdmin",
+            hashed_password=hashed_password,
+            role=models.UserRole.ADMIN,
+            is_active=True
+        )
+        db.add(new_admin)
     
-    db.add(new_admin)
     db.commit()
-    print("Seed successful! Admin user created:")
-    print("Email: admin@yokobaine.com")
-    print("Password: admin123")
-    
+    print("Seed process complete!")
     db.close()
 
 if __name__ == "__main__":

@@ -27,4 +27,4 @@ def forgot_password(request: schemas.ForgotPasswordRequest, background_tasks: Ba
 
 @router.post("/reset-password")
 def reset_password(request: schemas.ResetPasswordRequest, db: Session = Depends(database.get_db)):
-    return service.process_reset_password(db, request.token, request.new_password)
+    return service.process_reset_password(db, request.email, request.token, request.new_password)
