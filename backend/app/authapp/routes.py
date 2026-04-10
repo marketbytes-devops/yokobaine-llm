@@ -18,6 +18,10 @@ def create_role(role: schemas.RoleCreate, db: Session = Depends(database.get_db)
 def get_roles(db: Session = Depends(database.get_db)):
     return service.get_roles(db)
 
+@router.delete("/roles/{role_id}")
+def delete_role(role_id: int, db: Session = Depends(database.get_db)):
+    return service.delete_role(db, role_id)
+
 # --- User Management ---
 @router.post("/register", response_model=schemas.UserResponse)
 def register(user: schemas.UserCreate, db: Session = Depends(database.get_db)):

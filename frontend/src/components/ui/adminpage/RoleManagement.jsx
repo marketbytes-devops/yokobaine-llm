@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Shield, Plus, List, CheckCircle, XCircle } from "lucide-react";
+import { Shield, Plus, List, CheckCircle, XCircle, Trash2 } from "lucide-react";
 
 export const RoleManagementModule = () => {
     const [roles, setRoles] = useState([]);
@@ -54,6 +54,24 @@ export const RoleManagementModule = () => {
             setMessage({ type: "error", text: "Connection error. Is the backend running?" });
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDeleteRole = async (roleId) => {
+        if (!window.confirm("Are you sure you want to delete this role?")) return;
+        
+        try {
+            const res = await fetch(`http://localhost:8000/api/auth/roles/${roleId}`, {
+                method: "DELETE"
+            });
+            if (res.ok) {
+                fetchRoles();
+            } else {
+                const error = await res.json();
+                alert(error.detail || "Failed to delete role");
+            }
+        } catch (err) {
+            alert("Connection error. Could not delete role.");
         }
     };
 
@@ -134,14 +152,16 @@ export const RoleManagementModule = () => {
                                     <div className="p-3 bg-slate-50 text-slate-400 group-hover:bg-[#0BC48B]/10 group-hover:text-[#0BC48B] rounded-2xl transition-colors">
                                         <Shield size={20} />
                                     </div>
-                                    <span className="text-[10px] font-black px-3 py-1 bg-slate-100 text-slate-400 rounded-full uppercase tracking-widest italic group-hover:bg-[#0BC48B]/10 group-hover:text-[#0BC48B]">ID: #{role.id}</span>
+                                    <button 
+                                        onClick={() => handleDeleteRole(role.id)}
+                                        className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                                        title="Delete Role"
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
                                 </div>
                                 <h4 className="text-xl font-black text-slate-800 mb-2 leading-tight">{role.name}</h4>
-                                <p className="text-sm text-slate-400 font-medium leading-relaxed mb-4">{role.description || "No description provided"}</p>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-[#0BC48B]"></div>
-                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Dynamic Role</span>
-                                </div>
+                                <p className="text-sm text-slate-400 font-medium leading-relaxed">{role.description || "No description provided"}</p>
                             </div>
                         ))}
 

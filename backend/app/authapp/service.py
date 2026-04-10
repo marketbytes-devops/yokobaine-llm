@@ -49,6 +49,14 @@ def create_role(db: Session, role: schemas.RoleCreate):
     db.refresh(db_role)
     return db_role
 
+def delete_role(db: Session, role_id: int):
+    db_role = db.query(models.Role).filter(models.Role.id == role_id).first()
+    if not db_role:
+        raise HTTPException(status_code=404, detail="Role not found")
+    db.delete(db_role)
+    db.commit()
+    return {"message": "Role deleted successfully"}
+
 def get_roles(db: Session):
     return db.query(models.Role).all()
 
