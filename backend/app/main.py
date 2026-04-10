@@ -1,10 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.core import database
 from app.authapp import routes as auth_routes
+from app.school import routes as school_routes
 
-
-database.Base.metadata.create_all(bind=database.engine)
+# NOTE: Do NOT use create_all() here.
+# All database schema changes are managed by Alembic migrations.
+# To apply changes: alembic upgrade head
 
 app = FastAPI(title="Yokobine LLM API")
 
@@ -18,6 +19,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_routes.router)
+app.include_router(school_routes.router)
 
 @app.get("/")
 def root():
