@@ -10,6 +10,7 @@ import { StudentLedgerModule } from "./StudentLedger";
 import { FinancialManagementModule } from "./FinancialManagement";
 import { NoticeboardModule } from "./Noticeboard";
 import { DashboardModule } from "./Dashboard";
+import { RoleManagementModule } from "./RoleManagement";
 
 const AdminDashboard = () => {
     const [activeTab, setActiveTab] = useState("Dashboard");
@@ -32,6 +33,8 @@ const AdminDashboard = () => {
                 return <NoticeboardModule />;
             case "Finance":
                 return <FinancialManagementModule />;
+            case "Roles":
+                return <RoleManagementModule />;
             default:
                 return <ModulePlaceholder title={activeTab} />;
         }
