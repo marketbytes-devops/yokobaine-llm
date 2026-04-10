@@ -42,6 +42,7 @@ export default function LoginScreen() {
 
       switch (data.role) {
         case "admin":
+        case "SuperAdmin":
           router.push("/admin");
           break;
         case "teacher":

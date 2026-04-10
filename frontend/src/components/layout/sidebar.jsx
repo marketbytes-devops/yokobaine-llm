@@ -12,7 +12,8 @@ import {
     Clock,
     Megaphone,
     ChevronRight,
-    HelpCircle
+    HelpCircle,
+    Shield
 } from "lucide-react";
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
@@ -34,6 +35,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
                 <SideItem icon={<GraduationCap size={18} />} label="Student & Parent Ledger" active={activeTab === "Ledger"} onClick={() => setActiveTab("Ledger")} />
                 <SideItem icon={<Megaphone size={18} />} label="Noticeboard & Broadcast" active={activeTab === "Broadcast"} onClick={() => setActiveTab("Broadcast")} />
                 <SideItem icon={<Wallet size={18} />} label="Financial Management" active={activeTab === "Finance"} onClick={() => setActiveTab("Finance")} />
+                <SideItem icon={<Shield size={18} />} label="Roles & Permissions" active={activeTab === "Roles"} onClick={() => setActiveTab("Roles")} />
                 <SideItem icon={<Settings size={18} />} label="Settings & Security" active={activeTab === "Settings"} onClick={() => setActiveTab("Settings")} />
             </nav>
 
