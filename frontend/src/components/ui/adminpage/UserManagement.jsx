@@ -90,8 +90,12 @@ export const UserManagementModule = () => {
     );
 
     const handleSave = async () => {
-        if (!formData.firstName || !formData.lastName || !formData.roleId || !formData.email) {
-            alert("Please fill out First Name, Last Name, Role Type, and Email.");
+        if (!formData.firstName || !formData.roleId || !formData.email) {
+            if (needsProfileLinking) {
+                alert("Please select a Profile from the dropdown to link this account.");
+            } else {
+                alert("Please fill out First Name, Role Type, and Email.");
+            }
             return;
         }
 
