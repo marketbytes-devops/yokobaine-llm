@@ -4,8 +4,10 @@ from app.core.database import get_db
 from app.school import service
 from app.school.schemas import (
     SchoolProfileCreate, SchoolProfileUpdate, SchoolProfileResponse,
-    AcademicTermCreate, AcademicTermUpdate, AcademicTermResponse
+    AcademicTermCreate, AcademicTermUpdate, AcademicTermResponse,
+    TeacherCreate, TeacherUpdate, TeacherResponse
 )
+from typing import List
 
 router = APIRouter(prefix="/api/v1/school", tags=["School"])
 
@@ -47,3 +49,35 @@ def update_existing_term(term_id: int, data: AcademicTermUpdate, db: Session = D
     if not updated:
         raise HTTPException(status_code=404, detail="Term not found")
     return updated
+
+
+# --- TEACHER ENDPOINTS ---
+
+@router.get("/teachers", response_model=List[TeacherResponse])
+def list_teachers(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return service.get_teachers(db, skip=skip, limit=limit)
+
+@router.get("/teachers/{teacher_id}", response_model=TeacherResponse)
+def get_teacher_by_id(teacher_id: int, db: Session = Depends(get_db)):
+    teacher = service.get_teacher(db, teacher_id)
+    if not teacher:
+        raise HTTPException(status_code=404, detail="Teacher not found")
+    return teacher
+
+@router.post("/teachers", response_model=TeacherResponse, status_code=status.HTTP_201_CREATED)
+def register_teacher(data: TeacherCreate, db: Session = Depends(get_db)):
+    return service.create_teacher(db, data)
+
+@router.put("/teachers/{teacher_id}", response_model=TeacherResponse)
+def update_teacher_profile(teacher_id: int, data: TeacherUpdate, db: Session = Depends(get_db)):
+    updated = service.update_teacher(db, teacher_id, data)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Teacher not found")
+    return updated
+
+@router.delete("/teachers/{teacher_id}")
+def remove_teacher(teacher_id: int, db: Session = Depends(get_db)):
+    deleted = service.delete_teacher(db, teacher_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Teacher not found")
+    return {"status": "success", "message": "Teacher removed"}
