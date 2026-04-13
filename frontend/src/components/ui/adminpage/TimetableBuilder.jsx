@@ -6,6 +6,8 @@ export const TimetableBuilderModule = () => {
     
     // States for the wizard
     const [globalTime, setGlobalTime] = useState({
+        level: 'LP',
+        stream: '',
         days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
         periods: 8,
         duration: 45,
@@ -14,6 +16,12 @@ export const TimetableBuilderModule = () => {
             { id: 2, start: "01:00 PM", end: "01:45 PM" }
         ]
     });
+
+    const [savedTimes, setSavedTimes] = useState([
+        { id: 1, level: 'HIGH SCHOOL', stream: '', periods: 8, duration: 40, days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], breaks: 2 }
+    ]);
+    const [subTab, setSubTab] = useState('config');
+
     const [workloads, setWorkloads] = useState([]);
     const [constraints, setConstraints] = useState([]);
 
@@ -24,25 +32,39 @@ export const TimetableBuilderModule = () => {
         { id: 4, title: 'Output Grid', subtitle: 'Step D', icon: <CalendarDays size={16} /> }
     ];
 
+    const handleDeleteSaved = (id) => {
+        setSavedTimes(savedTimes.filter(t => t.id !== id));
+    };
+
+    const handleSaveConfig = () => {
+        const newEntry = {
+            ...globalTime,
+            id: Date.now(),
+            breaksCount: globalTime.breaks.length
+        };
+        setSavedTimes([newEntry, ...savedTimes]);
+        setSubTab('saved');
+    };
+
     return (
-        <div className="space-y-8 animate-in fade-in duration-700 w-full max-w-6xl mx-auto pb-10">
+        <div className="space-y-8 animate-in fade-in duration-700 w-full max-w-7xl mx-auto pb-10">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div>
-                    <h2 className="text-3xl font-black text-slate-900 tracking-tighter mb-1">Automated Timetable Builder</h2>
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">AI-powered scheduling and conflict resolution</p>
+                    <h2 className="text-4xl font-black text-slate-900 tracking-tighter mb-2">Automated Timetable Builder</h2>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest tracking-[0.2em]">AI-powered scheduling and conflict resolution</p>
                 </div>
             </div>
 
             {/* Stepper Navigation */}
-            <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-50 flex items-center justify-between overflow-x-auto no-scrollbar gap-4">
+            <div className="bg-white rounded-[2.5rem] p-4 shadow-sm border border-slate-100 flex items-center justify-between overflow-x-auto no-scrollbar gap-4">
                 {steps.map(s => (
-                    <div key={s.id} onClick={() => setStep(s.id)} className={`flex-1 min-w-[200px] flex items-center gap-4 p-4 rounded-2xl cursor-pointer transition-all ${step === s.id ? 'bg-[#0BC48B] text-white shadow-lg shadow-[#0BC48B]/20' : step > s.id ? 'bg-slate-50 text-slate-800' : 'text-slate-400 hover:bg-slate-50'}`}>
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${step === s.id ? 'bg-white/20' : 'bg-white shadow-sm border border-slate-100'}`}>
-                            {step > s.id ? <CheckCircle2 size={20} className={step > s.id ? "text-[#0BC48B]" : ""} /> : s.icon}
+                    <div key={s.id} onClick={() => setStep(s.id)} className={`flex-1 min-w-[200px] flex items-center gap-4 p-5 rounded-3xl cursor-pointer transition-all ${step === s.id ? 'bg-[#0BC48B] text-white shadow-xl shadow-[#0BC48B]/20' : step > s.id ? 'bg-slate-50 text-slate-800' : 'text-slate-400 hover:bg-slate-50'}`}>
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${step === s.id ? 'bg-white/20' : 'bg-white shadow-sm border border-slate-100'}`}>
+                            {step > s.id ? <CheckCircle2 size={24} className={step > s.id ? "text-[#0BC48B]" : ""} /> : s.icon}
                         </div>
                         <div>
-                            <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">{s.subtitle}</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest opacity-80">{s.subtitle}</p>
                             <h4 className="font-black text-sm tracking-tight">{s.title}</h4>
                         </div>
                     </div>
@@ -50,7 +72,58 @@ export const TimetableBuilderModule = () => {
             </div>
 
             {/* Content Area */}
-            {step === 1 && <StepAGlobalTime data={globalTime} setData={setGlobalTime} onNext={() => setStep(2)} />}
+            {step === 1 && (
+                <div className="space-y-6">
+                    <div className="flex bg-slate-100 p-1.5 rounded-[1.5rem] w-fit shadow-inner">
+                        <button onClick={() => setSubTab('config')} className={`px-8 py-3 text-[10px] font-black rounded-xl uppercase tracking-widest transition-all ${subTab === 'config' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Configure New</button>
+                        <button onClick={() => setSubTab('saved')} className={`px-8 py-3 text-[10px] font-black rounded-xl uppercase tracking-widest transition-all ${subTab === 'saved' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Saved Definitions ({savedTimes.length})</button>
+                    </div>
+
+                    {subTab === 'config' ? (
+                        <StepAGlobalTime 
+                            data={globalTime} 
+                            setData={setGlobalTime} 
+                            onNext={() => setStep(2)} 
+                            onSave={handleSaveConfig}
+                        />
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in slide-in-from-left-4 duration-500">
+                             {savedTimes.map(t => (
+                                 <div key={t.id} className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/40 relative group">
+                                     <button onClick={() => handleDeleteSaved(t.id)} className="absolute top-6 right-6 p-2 rounded-full bg-rose-50 text-rose-400 hover:bg-rose-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 shadow-sm">
+                                         <Trash2 size={16} />
+                                     </button>
+                                     <div className="flex items-center gap-3 mb-6">
+                                         <span className="text-[10px] font-black bg-[#0BC48B] text-white px-3 py-1.5 rounded-full uppercase tracking-widest shadow-lg shadow-[#0BC48B]/20">{t.level}</span>
+                                         {t.stream && <span className="text-[10px] font-black bg-indigo-50 text-indigo-500 px-3 py-1.5 rounded-full uppercase tracking-widest">{t.stream}</span>}
+                                     </div>
+                                     <div className="space-y-4">
+                                         <div className="flex items-center justify-between">
+                                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Load Factor</span>
+                                             <span className="text-sm font-black text-slate-800">{t.periods} Periods @ {t.duration}m</span>
+                                         </div>
+                                         <div className="flex items-center justify-between">
+                                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Days</span>
+                                             <span className="text-sm font-black text-slate-800">{t.days.length} Days</span>
+                                         </div>
+                                     </div>
+                                     <div className="mt-8 flex gap-3">
+                                         <button onClick={() => { setGlobalTime(t); setSubTab('config'); }} className="flex-1 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest py-3.5 rounded-2xl hover:bg-slate-800 transition-colors">Edit Settings</button>
+                                         <button onClick={() => setStep(2)} className="flex-1 bg-[#0BC48B]/10 text-[#0BC48B] text-[10px] font-black uppercase tracking-widest py-3.5 rounded-2xl hover:bg-[#0BC48B] hover:text-white transition-all">Build Mapping</button>
+                                     </div>
+                                 </div>
+                             ))}
+                             {savedTimes.length === 0 && (
+                                 <div className="col-span-full py-24 bg-slate-50 rounded-[4rem] border border-slate-100 border-dashed text-center">
+                                     <Clock className="mx-auto text-slate-200 mb-6" size={64} />
+                                     <h4 className="font-black text-slate-400 text-lg uppercase tracking-widest">No Saved Configs</h4>
+                                     <button onClick={() => setSubTab('config')} className="mt-6 text-[10px] font-black text-[#0BC48B] uppercase tracking-widest flex items-center gap-2 mx-auto"><Plus size={16} /> Create First Definition</button>
+                                 </div>
+                             )}
+                        </div>
+                    )}
+                </div>
+            )}
             {step === 2 && <StepBWorkload onNext={() => setStep(3)} onPrev={() => setStep(1)} workloads={workloads} setWorkloads={setWorkloads} />}
             {step === 3 && <StepCConstraints onNext={() => setStep(4)} onPrev={() => setStep(2)} constraints={constraints} setConstraints={setConstraints} />}
             {step === 4 && <StepDOutputGrid onPrev={() => setStep(3)} />}
@@ -59,7 +132,7 @@ export const TimetableBuilderModule = () => {
     );
 };
 
-const StepAGlobalTime = ({ data, setData, onNext }) => {
+const StepAGlobalTime = ({ data, setData, onNext, onSave }) => {
     const toggleDay = (day) => {
         if (data.days.includes(day)) {
             setData({ ...data, days: data.days.filter(d => d !== day) });
@@ -81,10 +154,63 @@ const StepAGlobalTime = ({ data, setData, onNext }) => {
         setData({ ...data, breaks: data.breaks.filter(b => b.id !== id) });
     };
 
+    const levels = ["LP", "UP", "HIGH SCHOOL", "HIGHERSECONDARY"];
+    const streams = ["Science", "Commerce", "Humanities"];
+
     return (
-        <div className="bg-white rounded-[3rem] p-8 lg:p-12 border border-slate-50 shadow-sm animate-in slide-in-from-right-4">
-            <h3 className="font-black text-xl text-slate-800 tracking-tight mb-8">Global Time Settings</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+        <div className="bg-white rounded-[4rem] p-10 lg:p-14 border border-slate-100 shadow-2xl shadow-slate-200/50 animate-in slide-in-from-right-4 duration-500">
+            {/* Level & Stream Selection */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-14 pb-14 border-b border-slate-100">
+                <div>
+                    <label className="block text-[11px] font-black text-slate-900 uppercase tracking-widest mb-6 ml-1">Target Academic Levels</label>
+                    <div className="flex flex-wrap gap-4">
+                        {levels.map((lvl) => (
+                            <label 
+                                key={lvl} 
+                                className={`flex items-center gap-4 px-6 py-4 rounded-[2rem] cursor-pointer transition-all border-2 ${
+                                    data.level === lvl 
+                                    ? "bg-[#0BC48B]/5 border-[#0BC48B] text-slate-900 shadow-sm" 
+                                    : "bg-slate-50 border-transparent text-slate-400 hover:border-slate-200"
+                                }`}
+                            >
+                                <div className="relative flex items-center justify-center">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={data.level === lvl} 
+                                        onChange={() => setData({ ...data, level: lvl })}
+                                        className="peer appearance-none w-6 h-6 border-2 border-slate-200 rounded-lg checked:bg-[#0BC48B] checked:border-[#0BC48B] transition-all cursor-pointer"
+                                    />
+                                    <CheckCircle2 size={14} className="absolute text-white opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none" />
+                                </div>
+                                <span className="text-[11px] font-black uppercase tracking-widest">{lvl}</span>
+                            </label>
+                        ))}
+                    </div>
+
+                </div>
+
+                {data.level === "HIGHERSECONDARY" && (
+                    <div className="animate-in slide-in-from-top-4 duration-300">
+                        <label className="block text-[11px] font-black text-slate-900 uppercase tracking-widest mb-6 ml-1">Academic Stream</label>
+                        <div className="relative group">
+                            <select 
+                                value={data.stream} 
+                                onChange={(e) => setData({ ...data, stream: e.target.value })}
+                                className="w-full bg-slate-50 border border-slate-100 px-8 py-5 rounded-[2rem] text-sm font-black text-slate-900 outline-none focus:ring-8 focus:ring-[#0BC48B]/5 focus:border-[#0BC48B] focus:bg-white transition-all appearance-none cursor-pointer shadow-sm"
+                            >
+                                <option value="">General (Standard)</option>
+                                {streams.map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
+                            <div className="absolute right-8 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-[#0BC48B] transition-colors">
+                                <ChevronDown size={22} />
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+
                 <div className="space-y-8">
                     <div>
                         <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest mb-4 ml-1">Working Days</label>
@@ -123,10 +249,20 @@ const StepAGlobalTime = ({ data, setData, onNext }) => {
                     </div>
                 </div>
             </div>
-            <div className="mt-12 flex justify-end">
-                <button onClick={onNext} className="bg-[#0BC48B] text-white px-8 py-4 rounded-[1.5rem] font-black text-sm flex items-center gap-2 shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all">
-                    Continue to Workload Mapping <ChevronRight size={16} />
-                </button>
+
+            <div className="mt-16 pt-10 border-t border-slate-50 flex flex-col sm:flex-row items-center justify-between gap-6">
+                <div className="flex items-center gap-3">
+                    <div className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse" />
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Saved configurations can be reused for parallel grade sections</p>
+                </div>
+                <div className="flex items-center gap-4 w-full sm:w-auto">
+                    <button onClick={onSave} className="flex-1 sm:flex-none border-2 border-slate-900 text-slate-900 px-10 py-4 rounded-[1.8rem] font-black text-[11px] uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all">
+                        Save Configuration
+                    </button>
+                    <button onClick={onNext} className="flex-1 sm:flex-none bg-[#0BC48B] text-white px-10 py-5 rounded-[1.8rem] font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl shadow-[#0BC48B]/20 hover:-translate-y-1 active:scale-95 transition-all">
+                        Continue to Workload <ChevronRight size={18} />
+                    </button>
+                </div>
             </div>
         </div>
     );
