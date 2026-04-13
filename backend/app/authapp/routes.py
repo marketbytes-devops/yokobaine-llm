@@ -27,6 +27,10 @@ def delete_role(role_id: int, db: Session = Depends(database.get_db)):
 def register(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
     return service.create_user(db, user)
 
+@router.get("/users", response_model=list[schemas.UserResponse])
+def get_users(db: Session = Depends(database.get_db)):
+    return service.get_users(db)
+
 @router.post("/login", response_model=schemas.Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(database.get_db)):
     return service.authenticate_user(db, form_data.username, form_data.password)

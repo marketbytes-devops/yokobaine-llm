@@ -74,12 +74,16 @@ def create_user(db: Session, user: schemas.UserCreate):
         hashed_password=hashed_password,
         first_name=user.first_name,
         last_name=user.last_name,
+        phone_number=user.phone_number,
         role_id=user.role_id
     )
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
     return new_user
+
+def get_users(db: Session):
+    return db.query(models.User).all()
 
 def authenticate_user(db: Session, username: str, password: str):
     user = db.query(models.User).filter(

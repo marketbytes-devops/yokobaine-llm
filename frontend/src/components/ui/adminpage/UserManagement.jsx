@@ -2,59 +2,98 @@ import React, { useState, useEffect } from 'react';
 import { Save, UserPlus, Shield, Mail, Phone, Lock, ChevronDown, CheckCircle2, XCircle } from 'lucide-react';
 
 export const UserManagementModule = () => {
-    const [users, setUsers] = useState([
-        { id: 1, name: "Nithya Pradeep", role: "SuperAdmin", email: "nithya@yokobaine.com", phone: "+1 555-0100", status: "Active" },
-        { id: 2, name: "Sarah Jenkins", role: "Teacher", email: "s.jenkins@yokobaine.com", phone: "+1 555-0102", status: "Active" },
-        { id: 3, name: "Michael Davis", role: "Office Staff", email: "m.davis@yokobaine.com", phone: "+1 555-0103", status: "Suspended" }
-    ]);
+    const [users, setUsers] = useState([]);
+    const [availableRoles, setAvailableRoles] = useState([]);
+    const [loading, setLoading] = useState(false);
 
     const generatePassword = () => Math.random().toString(36).slice(-8) + Math.floor(Math.random() * 10) + "!";
 
     const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",
-        roleType: "Select Role...",
+        roleId: "",
         email: "",
         phone: "",
+        username: "",
         password: "",
         status: "Active"
     });
 
+    // Fetch Roles and Users on mount
+    const fetchData = async () => {
+        try {
+            const roleRes = await fetch("http://localhost:8000/api/auth/roles");
+            const roleData = await roleRes.json();
+            setAvailableRoles(roleData);
+
+            const userRes = await fetch("http://localhost:8000/api/auth/users");
+            const userData = await userRes.json();
+            setUsers(userData);
+        } catch (err) {
+            console.error("Failed to fetch data", err);
+        }
+    };
+
     useEffect(() => {
-        // Auto-generate password on mount
+        fetchData();
         setFormData(prev => ({ ...prev, password: generatePassword() }));
     }, []);
 
     const handleInputChange = (field, value) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
+        setFormData(prev => {
+            const newState = { ...prev, [field]: value };
+            // Auto-generate username from email if not set
+            if (field === "email" && !prev.username) {
+                newState.username = value.split('@')[0];
+            }
+            return newState;
+        });
     };
 
-    const handleSave = () => {
-        if (!formData.firstName || !formData.lastName || formData.roleType === "Select Role..." || !formData.email) {
+    const handleSave = async () => {
+        if (!formData.firstName || !formData.lastName || !formData.roleId || !formData.email) {
             alert("Please fill out First Name, Last Name, Role Type, and Email.");
             return;
         }
 
-        const newUser = {
-            id: Date.now(),
-            name: `${formData.firstName} ${formData.lastName}`,
-            role: formData.roleType,
-            email: formData.email,
-            phone: formData.phone || "N/A",
-            status: formData.status
-        };
+        setLoading(true);
+        try {
+            const res = await fetch("http://localhost:8000/api/auth/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    email: formData.email,
+                    username: formData.username || formData.email.split('@')[0],
+                    password: formData.password,
+                    first_name: formData.firstName,
+                    last_name: formData.lastName,
+                    phone_number: formData.phone,
+                    role_id: parseInt(formData.roleId)
+                })
+            });
 
-        setUsers([newUser, ...users]);
-        
-        setFormData({
-            firstName: "",
-            lastName: "",
-            roleType: "Select Role...",
-            email: "",
-            phone: "",
-            password: generatePassword(),
-            status: "Active"
-        });
+            if (res.ok) {
+                alert("User provisioned successfully!");
+                fetchData(); // Refresh list
+                setFormData({
+                    firstName: "",
+                    lastName: "",
+                    roleId: "",
+                    email: "",
+                    phone: "",
+                    username: "",
+                    password: generatePassword(),
+                    status: "Active"
+                });
+            } else {
+                const error = await res.json();
+                alert(error.detail || "Failed to create user");
+            }
+        } catch (err) {
+            alert("Connection error. Is the backend running?");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -90,12 +129,24 @@ export const UserManagementModule = () => {
                             <InputGroup label="Last Name" placeholder="Doe" type="text" value={formData.lastName} onChange={(e) => handleInputChange("lastName", e.target.value)} />
                         </div>
                         
-                        <SelectGroup 
-                            label="Role Type" 
-                            options={['Select Role...', 'SuperAdmin', 'Office Staff', 'Teacher', 'Transport Manager']} 
-                            value={formData.roleType}
-                            onChange={(e) => handleInputChange("roleType", e.target.value)}
-                        />
+                        <div>
+                            <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest mb-3 ml-1">Role Type</label>
+                            <div className="relative">
+                                <select 
+                                    value={formData.roleId}
+                                    onChange={(e) => handleInputChange("roleId", e.target.value)}
+                                    className="w-full bg-slate-50/50 border border-slate-100 px-6 py-4 rounded-[1.5rem] text-sm font-semibold text-slate-800 outline-none focus:ring-4 focus:ring-[#0BC48B]/10 focus:border-[#0BC48B] focus:bg-white transition-all appearance-none cursor-pointer shadow-sm"
+                                >
+                                    <option value="">Select Role...</option>
+                                    {availableRoles.map(role => (
+                                        <option key={role.id} value={role.id}>{role.name}</option>
+                                    ))}
+                                </select>
+                                <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                    <ChevronDown size={18} />
+                                </div>
+                            </div>
+                        </div>
                         
                         <InputGroup label="Email Address (Login ID)" placeholder="jane.doe@yokobaine.com" type="email" value={formData.email} onChange={(e) => handleInputChange("email", e.target.value)} />
                         <InputGroup label="Phone Number" placeholder="+1 555-0000" type="tel" value={formData.phone} onChange={(e) => handleInputChange("phone", e.target.value)} />
@@ -108,31 +159,14 @@ export const UserManagementModule = () => {
                             </div>
                             <p className="text-[9px] font-bold text-slate-400 mt-2 ml-1">Auto-generated string. User will be forced to change this.</p>
                         </div>
-
-                        <div>
-                            <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest mb-3 ml-1">Account Status</label>
-                            <div className="flex bg-slate-50/50 p-1.5 rounded-[1.5rem] border border-slate-100 shadow-sm relative">
-                                <button
-                                    onClick={() => handleInputChange("status", "Active")}
-                                    className={`flex-1 py-3 text-xs font-black rounded-2xl flex justify-center items-center gap-2 transition-all ${formData.status === "Active" ? "bg-white text-[#0BC48B] shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
-                                >
-                                    <CheckCircle2 size={14} /> Active
-                                </button>
-                                <button
-                                    onClick={() => handleInputChange("status", "Suspended")}
-                                    className={`flex-1 py-3 text-xs font-black rounded-2xl flex justify-center items-center gap-2 transition-all ${formData.status === "Suspended" ? "bg-white text-rose-500 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
-                                >
-                                    <XCircle size={14} /> Suspended
-                                </button>
-                            </div>
-                        </div>
                         
                         <button 
+                            disabled={loading}
                             onClick={handleSave}
-                            className="w-full bg-slate-900 text-white px-8 py-4 rounded-[1.5rem] font-black text-sm flex items-center justify-center gap-3 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all mt-4"
+                            className="w-full bg-slate-900 text-white px-8 py-4 rounded-[1.5rem] font-black text-sm flex items-center justify-center gap-3 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all mt-4 disabled:opacity-50"
                         >
                             <Save size={18} />
-                            Provision User
+                            {loading ? "Registering..." : "Provision User"}
                         </button>
                     </div>
                 </div>
@@ -157,45 +191,48 @@ export const UserManagementModule = () => {
     );
 };
 
-const UserCard = ({ name, role, email, phone, status }) => {
+const UserCard = ({ first_name, last_name, role, email, phone_number, is_active }) => {
+    const fullName = `${first_name} ${last_name}`;
+    const roleName = role ? role.name : "No Role";
+
     return (
         <div className="p-5 rounded-[2rem] border border-slate-100 bg-slate-50/30 hover:bg-slate-50 transition-colors group flex items-center justify-between">
             <div className="flex items-center gap-5">
                 <div className="w-12 h-12 rounded-2xl bg-white border border-slate-100 flex flex-col items-center justify-center shadow-sm text-[#0BC48B] overflow-hidden shrink-0">
-                     <img src={`https://api.dicebear.com/7.x/initials/svg?seed=${name}`} alt="avatar" />
+                     <img src={`https://api.dicebear.com/7.x/initials/svg?seed=${fullName}`} alt="avatar" />
                 </div>
                 <div>
                     <h4 className="font-black text-slate-800 tracking-tight flex items-center gap-2">
-                        {name}
-                        {status === "Active" ? (
+                        {fullName}
+                        {is_active ? (
                             <span className="w-2 h-2 rounded-full bg-[#0BC48B] shadow-[0_0_8px_rgba(11,196,139,0.5)]"></span>
                         ) : (
                             <span className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]"></span>
                         )}
                     </h4>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                        {role}
+                        {roleName}
                     </p>
                 </div>
             </div>
 
-            <div className="hidden lg:block">
-                <div className="flex items-center gap-2 text-[10px] font-bold text-slate-600 mb-1">
+            <div className="hidden lg:block text-right pr-6">
+                <div className="flex items-center justify-end gap-2 text-[10px] font-bold text-slate-600 mb-1">
                     <Mail size={12} className="text-slate-400" />
                     {email}
                 </div>
-                <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400">
+                <div className="flex items-center justify-end gap-2 text-[10px] font-bold text-slate-400">
                     <Phone size={12} className="text-slate-300" />
-                    {phone}
+                    {phone_number || "No Phone"}
                 </div>
             </div>
             
             <div className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-sm border ${
-                role === "SuperAdmin" ? "bg-slate-900 border-slate-800 text-white" :
-                role === "Teacher" ? "bg-[#0BC48B]/10 border-[#0BC48B]/20 text-[#0BC48B]" :
+                roleName === "SuperAdmin" ? "bg-slate-900 border-slate-800 text-white" :
+                roleName === "Teacher" ? "bg-[#0BC48B]/10 border-[#0BC48B]/20 text-[#0BC48B]" :
                 "bg-indigo-50 border-indigo-100 text-indigo-500"
             }`}>
-                {role}
+                {roleName}
             </div>
         </div>
     );
@@ -211,23 +248,5 @@ const InputGroup = ({ label, placeholder, type, value, onChange }) => (
             onChange={onChange}
             className="w-full bg-slate-50/50 border border-slate-100 px-6 py-4 rounded-[1.5rem] text-sm font-semibold text-slate-800 placeholder-slate-400 outline-none focus:ring-4 focus:ring-[#0BC48B]/10 focus:border-[#0BC48B] focus:bg-white transition-all shadow-sm" 
         />
-    </div>
-);
-
-const SelectGroup = ({ label, options, value, onChange }) => (
-    <div>
-        <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest mb-3 ml-1">{label}</label>
-        <div className="relative">
-            <select 
-                value={value}
-                onChange={onChange}
-                className="w-full bg-slate-50/50 border border-slate-100 px-6 py-4 rounded-[1.5rem] text-sm font-semibold text-slate-800 outline-none focus:ring-4 focus:ring-[#0BC48B]/10 focus:border-[#0BC48B] focus:bg-white transition-all appearance-none cursor-pointer shadow-sm"
-            >
-                {options.map((opt, i) => <option key={i} value={opt}>{opt}</option>)}
-            </select>
-            <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                <ChevronDown size={18} />
-            </div>
-        </div>
     </div>
 );

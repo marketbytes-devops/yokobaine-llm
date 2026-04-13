@@ -17,6 +17,7 @@ class User(Base):
     hashed_password = Column(String(255))
     first_name = Column(String(100), nullable=True)
     last_name = Column(String(100), nullable=True)
+    phone_number = Column(String(20), nullable=True)
     is_active = Column(Boolean, default=True)
     
     # Simple Dynamic Role
