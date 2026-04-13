@@ -40,9 +40,11 @@ export default function LoginScreen() {
       localStorage.setItem("token", data.access_token);
       localStorage.setItem("role", data.role);
 
-      switch (data.role) {
+      const userRole = data.role ? data.role.toLowerCase() : "";
+
+      switch (userRole) {
         case "admin":
-        case "SuperAdmin":
+        case "superadmin":
           router.push("/admin");
           break;
         case "teacher":
@@ -69,7 +71,7 @@ export default function LoginScreen() {
       {/* Left Side: Form Container */}
       <div className="w-full md:w-1/2 flex flex-col justify-center px-8 sm:px-16 md:px-24 lg:px-32 xl:px-40 bg-white">
         <div className="max-w-md w-full mx-auto md:mx-0">
-          
+
           <h1 className="text-4xl sm:text-[2.75rem] font-bold mb-3 tracking-tight leading-none">
             <span className="text-[#fca510]">Wel</span>
             <span className="text-[#10b981]">come</span>
@@ -120,7 +122,7 @@ export default function LoginScreen() {
               </div>
             </div>
 
-              {/* Remember Me Toggle */}
+            {/* Remember Me Toggle */}
             <div className="flex items-center justify-between mb-10">
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -163,7 +165,7 @@ export default function LoginScreen() {
           className="object-cover object-center"
           priority
         />
-        
+
         {/* Soft overlay gradient to ensure logo pops off the bottom */}
         <div className="absolute inset-0 bg-gradient-to-t from-white/60 via-transparent to-transparent"></div>
 
@@ -174,7 +176,7 @@ export default function LoginScreen() {
               src={logoImage}
               alt="Yokobaine Logo"
               fill
-              className="object-contain mix-blend-multiply" 
+              className="object-contain mix-blend-multiply"
               priority
             />
           </div>

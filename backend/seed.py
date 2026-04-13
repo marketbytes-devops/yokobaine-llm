@@ -11,34 +11,43 @@ from app.authapp import models
 def seed_admin():
     db = database.SessionLocal()
     
-   
     ADMIN_EMAIL = "nithyapradeep047@gmail.com"
     ADMIN_PASSWORD = "nithya123"
     
+    # 1. Ensure the SuperAdmin role exists in the 'roles' table
+    sa_role = db.query(models.Role).filter(models.Role.name == "SuperAdmin").first()
+    if not sa_role:
+        print("Creating SuperAdmin role...")
+        sa_role = models.Role(
+            name="SuperAdmin",
+            description="Full access to manage the school"
+        )
+        db.add(sa_role)
+        db.commit()
+        db.refresh(sa_role)
 
+    # 2. Setup the admin user and link to child 'SuperAdmin' role
     admin_user = db.query(models.User).filter(models.User.email == ADMIN_EMAIL).first()
     hashed_password = security.get_password_hash(ADMIN_PASSWORD)
 
     if admin_user:
-      
-        print(f"Updating admin user: {ADMIN_EMAIL}")
+        print(f"Updating existing admin user: {ADMIN_EMAIL}")
         admin_user.hashed_password = hashed_password
-        admin_user.role = models.UserRole.ADMIN
+        admin_user.role_id = sa_role.id
         admin_user.is_active = True
     else:
-      
         print(f"Creating new admin user: {ADMIN_EMAIL}")
         new_admin = models.User(
             email=ADMIN_EMAIL,
             username="SchoolAdmin",
             hashed_password=hashed_password,
-            role=models.UserRole.ADMIN,
+            role_id=sa_role.id,
             is_active=True
         )
         db.add(new_admin)
     
     db.commit()
-    print("Seed process complete!")
+    print("Seed process complete! Admin user created/updated and linked to 'SuperAdmin' role.")
     db.close()
 
 if __name__ == "__main__":
