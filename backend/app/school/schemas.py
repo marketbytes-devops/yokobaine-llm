@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, List
 from datetime import date, datetime
+
 
 class SchoolProfileBase(BaseModel):
     school_name: str
@@ -39,6 +40,40 @@ class AcademicTermUpdate(AcademicTermBase):
 class AcademicTermResponse(AcademicTermBase):
     id: int
     is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# --- TEACHER SCHEMAS ---
+
+class SchoolSectionBase(BaseModel):
+    name: str
+
+class SchoolSectionResponse(SchoolSectionBase):
+    id: int
+    class Config:
+        from_attributes = True
+
+class TeacherBase(BaseModel):
+    full_name: str
+    qualification: Optional[str] = None
+    subjects: List[str] = []
+
+class TeacherCreate(TeacherBase):
+    # We accept names of sections like ["LP", "UP"]
+    section_names: List[str] = []
+
+class TeacherUpdate(TeacherBase):
+    full_name: Optional[str] = None
+    section_names: Optional[List[str]] = None
+
+class TeacherResponse(TeacherBase):
+    id: int
+    is_active: bool
+    sections: List[SchoolSectionResponse] = []
     created_at: datetime
     updated_at: datetime
 

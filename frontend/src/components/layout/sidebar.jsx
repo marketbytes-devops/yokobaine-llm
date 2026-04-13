@@ -31,6 +31,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
                 <SideItem icon={<School size={18} />} label="School Profile" active={activeTab === "School Profile"} onClick={() => setActiveTab("School Profile")} />
                 <SideItem icon={<MapPin size={18} />} label="School Structure" active={activeTab === "Structure"} onClick={() => setActiveTab("Structure")} />
                 <SideItem icon={<UserPlus size={18} />} label="User Management & RBAC" active={activeTab === "RBAC"} onClick={() => setActiveTab("RBAC")} />
+                <SideItem icon={<Users size={18} />} label="Faculty Management" active={activeTab === "Faculty"} onClick={() => setActiveTab("Faculty")} />
                 <SideItem icon={<Clock size={18} />} label="Timetable Builder" active={activeTab === "Reports"} onClick={() => setActiveTab("Reports")} />
                 <SideItem icon={<GraduationCap size={18} />} label="Student & Parent Ledger" active={activeTab === "Ledger"} onClick={() => setActiveTab("Ledger")} />
                 <SideItem icon={<Megaphone size={18} />} label="Noticeboard & Broadcast" active={activeTab === "Broadcast"} onClick={() => setActiveTab("Broadcast")} />

@@ -1,5 +1,14 @@
-from sqlalchemy import Column, Integer, String, Date, DateTime, Boolean, func
+from sqlalchemy import Column, Integer, String, Date, DateTime, Boolean, func, Table, ForeignKey, JSON
+from sqlalchemy.orm import relationship
 from app.core.database import Base
+
+
+# Association table for Teacher <-> Section (Many-to-Many)
+teacher_section_link = Table(
+    'teacher_section_link', Base.metadata,
+    Column('teacher_id', Integer, ForeignKey('teachers.id'), primary_key=True),
+    Column('section_id', Integer, ForeignKey('school_sections.id'), primary_key=True)
+)
 
 
 class SchoolProfile(Base):
@@ -27,3 +36,29 @@ class AcademicTerm(Base):
     is_active       = Column(Boolean, default=True)
     created_at      = Column(DateTime, server_default=func.now())
     updated_at      = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class Teacher(Base):
+    __tablename__ = "teachers"
+
+    id             = Column(Integer, primary_key=True, index=True)
+    full_name      = Column(String(255), nullable=False)
+    qualification  = Column(String(255), nullable=True)
+    subjects       = Column(JSON, default=[]) # List of strings
+    is_active      = Column(Boolean, default=True)
+    created_at     = Column(DateTime, server_default=func.now())
+    updated_at     = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    # Relationship
+    sections = relationship("SchoolSection", secondary=teacher_section_link, back_populates="teachers")
+
+
+class SchoolSection(Base):
+    __tablename__ = "school_sections"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    name       = Column(String(100), nullable=False, unique=True) # e.g. LP, UP...
+    created_at = Column(DateTime, server_default=func.now())
+
+    # Relationship
+    teachers = relationship("Teacher", secondary=teacher_section_link, back_populates="sections")

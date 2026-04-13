@@ -4,6 +4,8 @@ import { Save, UserPlus, Shield, Mail, Phone, Lock, ChevronDown, CheckCircle2, X
 export const UserManagementModule = () => {
     const [users, setUsers] = useState([]);
     const [availableRoles, setAvailableRoles] = useState([]);
+    const [teachers, setTeachers] = useState([]);
+    const [selectedSections, setSelectedSections] = useState([]);
     const [loading, setLoading] = useState(false);
 
     const generatePassword = () => Math.random().toString(36).slice(-8) + Math.floor(Math.random() * 10) + "!";
@@ -19,7 +21,8 @@ export const UserManagementModule = () => {
         status: "Active"
     });
 
-    // Fetch Roles and Users on mount
+    const sectionsList = ["Kindergarten", "LP", "UP", "High School", "Higher Secondary"];
+
     const fetchData = async () => {
         try {
             const roleRes = await fetch("http://localhost:8000/api/auth/roles");
@@ -29,6 +32,14 @@ export const UserManagementModule = () => {
             const userRes = await fetch("http://localhost:8000/api/auth/users");
             const userData = await userRes.json();
             setUsers(userData);
+
+            const teacherRes = await fetch("http://localhost:8000/api/v1/school/teachers");
+            const teacherData = await teacherRes.json();
+            // Map backend structure for easier filtering
+            setTeachers(teacherData.map(t => ({
+                ...t,
+                sectionNames: t.sections.map(s => s.name)
+            })));
         } catch (err) {
             console.error("Failed to fetch data", err);
         }
@@ -42,13 +53,41 @@ export const UserManagementModule = () => {
     const handleInputChange = (field, value) => {
         setFormData(prev => {
             const newState = { ...prev, [field]: value };
-            // Auto-generate username from email if not set
             if (field === "email" && !prev.username) {
                 newState.username = value.split('@')[0];
             }
             return newState;
         });
     };
+
+    const handleSectionToggle = (section) => {
+        setSelectedSections(prev =>
+            prev.includes(section) ? prev.filter(s => s !== section) : [...prev, section]
+        );
+    };
+
+    const handleTeacherSelect = (teacherId) => {
+        const teacher = teachers.find(t => t.id === parseInt(teacherId));
+        if (teacher) {
+            const [first, ...last] = teacher.full_name.split(" ");
+            setFormData(prev => ({
+                ...prev,
+                firstName: first || "",
+                lastName: last.join(" ") || "",
+                // Note: If you want to use the teacher's registered email, we can add it later
+                // For now we'll keep the name sync
+            }));
+        }
+    };
+
+    const currentRoleName = availableRoles.find(r => r.id.toString() === formData.roleId.toString())?.name;
+    const isAdministrativeRole = currentRoleName === "SuperAdmin" || currentRoleName === "Admin";
+    const isTeacherRole = currentRoleName === "Teacher";
+    const needsProfileLinking = formData.roleId && !isAdministrativeRole;
+
+    const filteredTeachersList = teachers.filter(t =>
+        selectedSections.length === 0 || t.sectionNames.some(s => selectedSections.includes(s))
+    );
 
     const handleSave = async () => {
         if (!formData.firstName || !formData.lastName || !formData.roleId || !formData.email) {
@@ -124,15 +163,10 @@ export const UserManagementModule = () => {
                     </div>
 
                     <div className="space-y-6">
-                        <div className="grid grid-cols-2 gap-4">
-                            <InputGroup label="First Name" placeholder="Jane" type="text" value={formData.firstName} onChange={(e) => handleInputChange("firstName", e.target.value)} />
-                            <InputGroup label="Last Name" placeholder="Doe" type="text" value={formData.lastName} onChange={(e) => handleInputChange("lastName", e.target.value)} />
-                        </div>
-                        
                         <div>
                             <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest mb-3 ml-1">Role Type</label>
                             <div className="relative">
-                                <select 
+                                <select
                                     value={formData.roleId}
                                     onChange={(e) => handleInputChange("roleId", e.target.value)}
                                     className="w-full bg-slate-50/50 border border-slate-100 px-6 py-4 rounded-[1.5rem] text-sm font-semibold text-slate-800 outline-none focus:ring-4 focus:ring-[#0BC48B]/10 focus:border-[#0BC48B] focus:bg-white transition-all appearance-none cursor-pointer shadow-sm"
@@ -147,10 +181,61 @@ export const UserManagementModule = () => {
                                 </div>
                             </div>
                         </div>
-                        
+                        {/* Conditional Section Filtering for Teachers / Non-Admins */}
+                        {needsProfileLinking && (
+                            <div className="bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100 animate-in slide-in-from-top duration-500">
+                                {isTeacherRole && (
+                                    <>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 ml-1">Filter by School Section</label>
+                                        <div className="space-y-3 mb-8">
+                                            {sectionsList.map(s => (
+                                                <button
+                                                    key={s}
+                                                    onClick={() => handleSectionToggle(s)}
+                                                    className={`w-full flex items-center justify-between px-6 py-4 rounded-2xl font-bold text-xs transition-all border-2 ${selectedSections.includes(s)
+                                                        ? "bg-slate-900 border-slate-900 text-white shadow-lg shadow-slate-900/20"
+                                                        : "bg-white border-slate-100 text-slate-400 hover:border-slate-200"
+                                                        }`}
+                                                >
+                                                    {s}
+                                                    {selectedSections.includes(s) && (
+                                                        <CheckCircle2 size={16} className="text-[#0BC48B] animate-in zoom-in duration-300" />
+                                                    )}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
+
+                                <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest mb-3 ml-1">Select Profile</label>
+                                <div className="relative">
+                                    <select
+                                        onChange={(e) => handleTeacherSelect(e.target.value)}
+                                        className="w-full bg-white border border-slate-200 px-6 py-4 rounded-2xl text-sm font-semibold text-slate-800 outline-none focus:ring-4 focus:ring-[#0BC48B]/10 focus:border-[#0BC48B] transition-all appearance-none cursor-pointer shadow-sm"
+                                    >
+                                        <option value="">Select Name</option>
+                                        {filteredTeachersList.map(t => (
+                                            <option key={t.id} value={t.id}>{t.full_name} ({t.sectionNames.join(", ")})</option>
+                                        ))}
+                                    </select>
+                                    <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                        <ChevronDown size={18} />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {!needsProfileLinking && (
+                            <div className="grid grid-cols-2 gap-4">
+                                <InputGroup label="First Name" placeholder="Jane" type="text" value={formData.firstName} onChange={(e) => handleInputChange("firstName", e.target.value)} />
+                                <InputGroup label="Last Name" placeholder="Doe" type="text" value={formData.lastName} onChange={(e) => handleInputChange("lastName", e.target.value)} />
+                            </div>
+                        )}
+
+
                         <InputGroup label="Email Address (Login ID)" placeholder="jane.doe@yokobaine.com" type="email" value={formData.email} onChange={(e) => handleInputChange("email", e.target.value)} />
                         <InputGroup label="Phone Number" placeholder="+1 555-0000" type="tel" value={formData.phone} onChange={(e) => handleInputChange("phone", e.target.value)} />
-                        
+
                         <div>
                             <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest mb-3 ml-1">Temporary Password</label>
                             <div className="relative">
@@ -159,8 +244,8 @@ export const UserManagementModule = () => {
                             </div>
                             <p className="text-[9px] font-bold text-slate-400 mt-2 ml-1">Auto-generated string. User will be forced to change this.</p>
                         </div>
-                        
-                        <button 
+
+                        <button
                             disabled={loading}
                             onClick={handleSave}
                             className="w-full bg-slate-900 text-white px-8 py-4 rounded-[1.5rem] font-black text-sm flex items-center justify-center gap-3 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all mt-4 disabled:opacity-50"
@@ -199,7 +284,7 @@ const UserCard = ({ first_name, last_name, role, email, phone_number, is_active 
         <div className="p-5 rounded-[2rem] border border-slate-100 bg-slate-50/30 hover:bg-slate-50 transition-colors group flex items-center justify-between">
             <div className="flex items-center gap-5">
                 <div className="w-12 h-12 rounded-2xl bg-white border border-slate-100 flex flex-col items-center justify-center shadow-sm text-[#0BC48B] overflow-hidden shrink-0">
-                     <img src={`https://api.dicebear.com/7.x/initials/svg?seed=${fullName}`} alt="avatar" />
+                    <img src={`https://api.dicebear.com/7.x/initials/svg?seed=${fullName}`} alt="avatar" />
                 </div>
                 <div>
                     <h4 className="font-black text-slate-800 tracking-tight flex items-center gap-2">
@@ -226,12 +311,11 @@ const UserCard = ({ first_name, last_name, role, email, phone_number, is_active 
                     {phone_number || "No Phone"}
                 </div>
             </div>
-            
-            <div className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-sm border ${
-                roleName === "SuperAdmin" ? "bg-slate-900 border-slate-800 text-white" :
+
+            <div className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-sm border ${roleName === "SuperAdmin" ? "bg-slate-900 border-slate-800 text-white" :
                 roleName === "Teacher" ? "bg-[#0BC48B]/10 border-[#0BC48B]/20 text-[#0BC48B]" :
-                "bg-indigo-50 border-indigo-100 text-indigo-500"
-            }`}>
+                    "bg-indigo-50 border-indigo-100 text-indigo-500"
+                }`}>
                 {roleName}
             </div>
         </div>
@@ -241,12 +325,12 @@ const UserCard = ({ first_name, last_name, role, email, phone_number, is_active 
 const InputGroup = ({ label, placeholder, type, value, onChange }) => (
     <div>
         <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest mb-3 ml-1">{label}</label>
-        <input 
-            type={type} 
-            placeholder={placeholder} 
+        <input
+            type={type}
+            placeholder={placeholder}
             value={value}
             onChange={onChange}
-            className="w-full bg-slate-50/50 border border-slate-100 px-6 py-4 rounded-[1.5rem] text-sm font-semibold text-slate-800 placeholder-slate-400 outline-none focus:ring-4 focus:ring-[#0BC48B]/10 focus:border-[#0BC48B] focus:bg-white transition-all shadow-sm" 
+            className="w-full bg-slate-50/50 border border-slate-100 px-6 py-4 rounded-[1.5rem] text-sm font-semibold text-slate-800 placeholder-slate-400 outline-none focus:ring-4 focus:ring-[#0BC48B]/10 focus:border-[#0BC48B] focus:bg-white transition-all shadow-sm"
         />
     </div>
 );
