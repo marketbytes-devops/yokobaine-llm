@@ -32,18 +32,20 @@ def get_current_active_user(current_user: models.User = Depends(get_current_user
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
-def require_role(allowed_roles: list[models.UserRole]):
+def require_role(allowed_role_names: list[str]):
     def role_checker(current_user: models.User = Depends(get_current_active_user)):
-        if current_user.role not in allowed_roles:
+        role_name = current_user.role.name if current_user.role else None
+        if role_name not in allowed_role_names:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Operation not permitted for this role"
+                detail=f"Operation not permitted. Required roles: {allowed_role_names}"
             )
         return current_user
     return role_checker
 
 def require_admin(current_user: models.User = Depends(get_current_active_user)):
-    if current_user.role != models.UserRole.ADMIN:
+    role_name = current_user.role.name if current_user.role else None
+    if role_name not in ["SuperAdmin", "admin"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Requires Admin role"
