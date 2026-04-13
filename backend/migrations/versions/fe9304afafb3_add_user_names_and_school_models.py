@@ -27,7 +27,7 @@ def upgrade() -> None:
     sa.Column('description', sa.String(length=255), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index(op.f('ix_roles_id'), 'roles', ['id'], unique=False)
+    # op.create_index(op.f('ix_roles_id'), 'roles', ['id'], unique=False)
     op.create_index(op.f('ix_roles_name'), 'roles', ['name'], unique=True)
     op.add_column('users', sa.Column('first_name', sa.String(length=100), nullable=True))
     op.add_column('users', sa.Column('last_name', sa.String(length=100), nullable=True))
