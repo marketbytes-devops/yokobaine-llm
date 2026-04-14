@@ -18,7 +18,10 @@ export const TimetableBuilderModule = () => {
     });
 
     const [savedTimes, setSavedTimes] = useState([
-        { id: 1, level: 'HIGH SCHOOL', stream: '', periods: 8, duration: 40, days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], breaks: 2 }
+        { id: 1, level: 'HIGH SCHOOL', stream: '', periods: 8, duration: 40, days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], breaks: [
+            { id: 1, start: "10:30 AM", end: "10:45 AM" },
+            { id: 2, start: "01:00 PM", end: "01:45 PM" }
+        ], breaksCount: 2 }
     ]);
     const [subTab, setSubTab] = useState('config');
 
