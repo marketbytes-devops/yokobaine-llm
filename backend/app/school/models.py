@@ -62,3 +62,25 @@ class SchoolSection(Base):
 
     # Relationship
     teachers = relationship("Teacher", secondary=teacher_section_link, back_populates="sections")
+    classes  = relationship("SchoolClass", back_populates="section")
+
+
+class SchoolClass(Base):
+    __tablename__ = "school_classes"
+
+    id                 = Column(Integer, primary_key=True, index=True)
+    class_name         = Column(String(100), nullable=False) # e.g. Class 10
+    section_identifier = Column(String(50), nullable=True)  # e.g. A, B, Jupiter
+    stream             = Column(String(100), nullable=True) 
+    capacity           = Column(Integer, default=40)
+    
+    # Foreign Keys
+    section_id       = Column(Integer, ForeignKey("school_sections.id"), nullable=False)
+    class_teacher_id = Column(Integer, ForeignKey("teachers.id"), nullable=True)
+
+    # Relationships
+    section       = relationship("SchoolSection", back_populates="classes")
+    class_teacher = relationship("Teacher")
+    
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

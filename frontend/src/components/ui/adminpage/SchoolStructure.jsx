@@ -3,13 +3,10 @@ import { Save, Plus, BookOpen, Users, MapPin, ChevronDown, Edit, Trash2, CheckCi
 import { SubjectManagementModule } from './SubjectManagement';
 
 export const SchoolStructureModule = () => {
-    const [view, setView] = useState("Classroom"); // "Classroom" or "Subject"
-    const [classes, setClasses] = useState([
-        { id: 1, grade: "Class 10", section: "A", teacher: "Sarah Jenkins", capacity: "40", enrolled: "38", room: "101", level: "HIGH SCHOOL" },
-        { id: 2, grade: "Class 10", section: "B", teacher: "Michael Davis", capacity: "40", enrolled: "40", room: "102", level: "HIGH SCHOOL" },
-        { id: 3, grade: "Class 3", section: "A", teacher: "Emily Roberts", capacity: "35", enrolled: "32", room: "204", level: "LP" },
-        { id: 4, grade: "Class 6", section: "C", teacher: "Robert Chen", capacity: "35", enrolled: "28", room: "305", level: "UP" }
-    ]);
+    const [view, setView] = useState("Classroom"); 
+    const [classes, setClasses] = useState([]);
+    const [teachers, setTeachers] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
 
     const [selectedLevel, setSelectedLevel] = useState("HIGH SCHOOL");
     const [isEditing, setIsEditing] = useState(false);
@@ -18,13 +15,15 @@ export const SchoolStructureModule = () => {
     const [formData, setFormData] = useState({
         grade: "",
         section: "",
-        stream: "", // New field for Higher Secondary
-        teacher: "",
-        capacity: "",
+        stream: "",
+        teacherId: "",
+        capacity: "40",
         room: ""
     });
 
-    // Level-based class options
+    const API_BASE = "http://localhost:8000/api/v1/school";
+
+    
     const levelConfigs = {
         "KG": ["LKG", "UKG"],
         "LP": ["Class 1", "Class 2", "Class 3", "Class 4"],
@@ -33,13 +32,34 @@ export const SchoolStructureModule = () => {
         "HIGHERSECONDARY": ["Class 11", "Class 12"]
     };
 
-    // Auto-select first class when level changes
+    // Fetch teachers and existing classes for the selected level
+    const fetchData = async () => {
+        setIsLoading(true);
+        try {
+            // Fetch teachers for this segment
+            const tRes = await fetch(`${API_BASE}/sections/${selectedLevel}/teachers`);
+            const tData = await tRes.json();
+            setTeachers(tData);
+
+            // Fetch classes for this segment
+            const cRes = await fetch(`${API_BASE}/sections/${selectedLevel}/classes`);
+            const cData = await cRes.json();
+            setClasses(cData);
+        } catch (error) {
+            console.error("Error fetching data:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     useEffect(() => {
+        fetchData();
         if (!isEditing) {
             setFormData(prev => ({ 
                 ...prev, 
                 grade: levelConfigs[selectedLevel][0],
-                stream: "" // Clear stream when changing level
+                stream: "",
+                teacherId: ""
             }));
         }
     }, [selectedLevel]);
@@ -48,60 +68,80 @@ export const SchoolStructureModule = () => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!formData.grade || !formData.section || !formData.capacity) {
-            alert("Please fill out Grade, Section, and Capacity.");
+            alert("Please fill out Grade, Section identifier, and Capacity.");
             return;
         }
 
-        if (isEditing) {
-            setClasses(classes.map(cls => cls.id === editId ? { ...cls, ...formData, level: selectedLevel } : cls));
-            setIsEditing(false);
-            setEditId(null);
-        } else {
-            const newClass = {
-                id: Date.now(),
-                grade: formData.grade,
-                section: formData.section,
-                stream: selectedLevel === "HIGHERSECONDARY" ? formData.stream : "",
-                teacher: formData.teacher === "" || formData.teacher === "Select Teacher..." ? "Unassigned" : formData.teacher,
-                capacity: formData.capacity,
-                enrolled: "0",
-                room: formData.room || "TBD",
-                level: selectedLevel
-            };
-            setClasses([newClass, ...classes]);
+        const payload = {
+            class_name: formData.grade,
+            section_identifier: formData.section,
+            stream: selectedLevel === "HIGHERSECONDARY" ? formData.stream : null,
+            room_number: formData.room || "TBD",
+            capacity: parseInt(formData.capacity),
+            section_name: selectedLevel,
+            class_teacher_id: formData.teacherId ? parseInt(formData.teacherId) : null
+        };
+
+        try {
+            const method = isEditing ? "PUT" : "POST";
+            const url = isEditing ? `${API_BASE}/classes/${editId}` : `${API_BASE}/classes`;
+            
+            const response = await fetch(url, {
+                method: method,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                alert(isEditing ? "Configuration updated!" : "Class created!");
+                fetchData(); // Refresh list
+                
+                // Reset form and state
+                setIsEditing(false);
+                setEditId(null);
+                setFormData({
+                    grade: levelConfigs[selectedLevel][0],
+                    section: "",
+                    stream: "",
+                    teacherId: "",
+                    capacity: "40",
+                    room: ""
+                });
+            } else {
+                alert("Failed to save class configuration.");
+            }
+        } catch (error) {
+            console.error("Error saving class:", error);
         }
+    };
+
+    const handleDelete = async (id) => {
+        if (!window.confirm("Are you sure you want to delete this class?")) return;
         
-        setFormData({
-            grade: levelConfigs[selectedLevel][0],
-            section: "",
-            stream: "",
-            teacher: "",
-            capacity: "",
-            room: ""
-        });
+        try {
+            const response = await fetch(`${API_BASE}/classes/${id}`, { method: "DELETE" });
+            if (response.ok) {
+                setClasses(classes.filter(cls => cls.id !== id));
+            }
+        } catch (error) {
+            console.error("Error deleting class:", error);
+        }
     };
 
     const handleEdit = (cls) => {
+        // Translation from backend model to frontend form
         setIsEditing(true);
         setEditId(cls.id);
-        setSelectedLevel(cls.level);
         setFormData({
-            grade: cls.grade,
-            section: cls.section,
+            grade: cls.class_name,
+            section: cls.section_identifier,
             stream: cls.stream || "",
-            teacher: cls.teacher,
-            capacity: cls.capacity,
-            room: cls.room
+            teacherId: cls.class_teacher_id || "",
+            capacity: cls.capacity.toString(),
+            room: cls.room_number
         });
-    };
-
-
-    const handleDelete = (id) => {
-        if (window.confirm("Are you sure you want to delete this class configuration?")) {
-            setClasses(classes.filter(cls => cls.id !== id));
-        }
     };
 
     return (
@@ -189,12 +229,24 @@ export const SchoolStructureModule = () => {
                             onChange={(e) => handleInputChange("section", e.target.value)}
                         />
                         
-                        <SelectGroup 
-                            label="Class Teacher" 
-                            options={['Select Teacher...', 'Sarah Jenkins', 'Michael Davis', 'Emily Roberts', 'Robert Chen']} 
-                            value={formData.teacher}
-                            onChange={(e) => handleInputChange("teacher", e.target.value)}
-                        />
+                        <div className="group/select transition-all duration-300">
+                            <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest mb-3 ml-1">Class Teacher</label>
+                            <div className="relative">
+                                <select 
+                                    value={formData.teacherId}
+                                    onChange={(e) => handleInputChange("teacherId", e.target.value)}
+                                    className="w-full bg-slate-50/50 border border-slate-100 px-6 py-5 rounded-[1.8rem] text-sm font-semibold text-slate-800 outline-none focus:ring-8 focus:ring-[#0BC48B]/5 focus:border-[#0BC48B] focus:bg-white transition-all appearance-none cursor-pointer shadow-sm"
+                                >
+                                    <option value="">Select Teacher...</option>
+                                    {teachers.map(t => (
+                                        <option key={t.id} value={t.id}>{t.full_name}</option>
+                                    ))}
+                                </select>
+                                <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                    <ChevronDown size={20} />
+                                </div>
+                            </div>
+                        </div>
                         
                         <div className="grid grid-cols-2 gap-4">
                             <InputGroup 
@@ -215,7 +267,8 @@ export const SchoolStructureModule = () => {
                         
                         <button 
                             onClick={handleSave}
-                            className={`w-full ${isEditing ? 'bg-[#0BC48B]' : 'bg-slate-900'} text-white px-8 py-5 rounded-[1.8rem] font-black text-sm flex items-center justify-center gap-4 shadow-xl hover:-translate-y-1 active:scale-95 transition-all mt-6`}
+                            disabled={isLoading}
+                            className={`w-full ${isEditing ? 'bg-[#0BC48B]' : 'bg-slate-900'} text-white px-8 py-5 rounded-[1.8rem] font-black text-sm flex items-center justify-center gap-4 shadow-xl hover:-translate-y-1 active:scale-95 transition-all mt-6 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                             {isEditing ? <CheckCircle2 size={20} /> : <Save size={20} />}
                             {isEditing ? "Update Configuration" : "Save & Create Class"}
@@ -226,7 +279,7 @@ export const SchoolStructureModule = () => {
                                 onClick={() => {
                                     setIsEditing(false);
                                     setEditId(null);
-                                    setFormData({ grade: levelConfigs[selectedLevel][0], section: "", teacher: "", capacity: "", room: "" });
+                                    setFormData({ grade: levelConfigs[selectedLevel][0], section: "", teacherId: "", capacity: "40", room: "" });
                                 }}
                                 className="w-full text-slate-400 font-black text-[10px] uppercase tracking-[0.2em] mt-2 hover:text-rose-500 transition-colors"
                             >
@@ -249,18 +302,25 @@ export const SchoolStructureModule = () => {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            {classes.map(cls => (
-                                <ClassCard 
-                                    key={cls.id}
-                                    data={cls}
-                                    onEdit={() => handleEdit(cls)}
-                                    onDelete={() => handleDelete(cls.id)}
-                                />
-                            ))}
-                        </div>
+                        {isLoading ? (
+                            <div className="py-20 text-center animate-pulse">
+                                <p className="text-slate-300 font-black text-xs uppercase tracking-[0.3em]">Loading Classes...</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                {classes.map(cls => (
+                                    <ClassCard 
+                                        key={cls.id}
+                                        data={cls}
+                                        selectedLevel={selectedLevel}
+                                        onEdit={() => handleEdit(cls)}
+                                        onDelete={() => handleDelete(cls.id)}
+                                    />
+                                ))}
+                            </div>
+                        )}
 
-                        {classes.length === 0 && (
+                        {!isLoading && classes.length === 0 && (
                             <div className="py-20 text-center">
                                 <p className="text-slate-300 font-black text-xs uppercase tracking-[0.3em]">No classes configured yet</p>
                             </div>
@@ -274,10 +334,9 @@ export const SchoolStructureModule = () => {
     );
 };
 
-const ClassCard = ({ data, onEdit, onDelete }) => {
-    const { grade, section, teacher, capacity, enrolled, room, level } = data;
-    const fillPercentage = (parseInt(enrolled) / parseInt(capacity)) * 100;
-    const isFull = fillPercentage >= 100;
+const ClassCard = ({ data, onEdit, onDelete, selectedLevel }) => {
+    // Map from backend fields
+    const { class_name, section_identifier, class_teacher, capacity, room_number, stream } = data;
 
     return (
         <div className="p-8 rounded-[2.5rem] border border-slate-100 bg-white hover:border-[#0BC48B] hover:shadow-2xl hover:shadow-[#0BC48B]/10 transition-all group relative overflow-hidden">
@@ -292,23 +351,23 @@ const ClassCard = ({ data, onEdit, onDelete }) => {
 
             <div className="flex items-start gap-5 mb-6">
                 <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center flex-shrink-0 text-white font-black text-2xl shadow-lg ring-4 ring-slate-100">
-                    {section}
+                    {section_identifier || "?"}
                 </div>
                 <div>
-                    <h4 className="font-black text-slate-900 text-lg tracking-tight leading-tight">{grade}</h4>
+                    <h4 className="font-black text-slate-900 text-lg tracking-tight leading-tight">{class_name}</h4>
                     <div className="flex flex-wrap gap-2 mt-1">
                         <span className="inline-block px-3 py-1 bg-slate-100 rounded-full text-[8px] font-black text-slate-400 uppercase tracking-widest">
-                            {level}
+                            {selectedLevel}
                         </span>
-                        {data.stream && (
+                        {stream && (
                             <span className="inline-block px-3 py-1 bg-[#0BC48B]/10 rounded-full text-[8px] font-black text-[#0BC48B] uppercase tracking-widest">
-                                {data.stream}
+                                {stream}
                             </span>
                         )}
                     </div>
                     <div className="flex items-center gap-2 text-[10px] font-bold text-[#0BC48B] uppercase tracking-widest mt-4">
                         <Users size={12} strokeWidth={3} />
-                        <span>{teacher}</span>
+                        <span>{class_teacher ? class_teacher.full_name : "Unassigned"}</span>
                     </div>
                 </div>
             </div>
@@ -320,7 +379,7 @@ const ClassCard = ({ data, onEdit, onDelete }) => {
                     </div>
                     <div>
                         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Room</p>
-                        <p className="text-xs font-black text-slate-900 uppercase">#{room}</p>
+                        <p className="text-xs font-black text-slate-900 uppercase">#{room_number}</p>
                     </div>
                 </div>
 

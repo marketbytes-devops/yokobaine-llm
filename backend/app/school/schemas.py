@@ -57,6 +57,34 @@ class SchoolSectionResponse(SchoolSectionBase):
     class Config:
         from_attributes = True
 
+class SchoolClassBase(BaseModel):
+    class_name: str
+    section_identifier: Optional[str] = None
+    stream: Optional[str] = None
+    room_number: Optional[str] = None
+    capacity: int = 40
+
+class SchoolClassCreate(SchoolClassBase):
+    section_name: str # e.g. LP, UP
+    class_teacher_id: Optional[int] = None
+
+class TeacherSimple(BaseModel):
+    id: int
+    full_name: str
+    class Config:
+        from_attributes = True
+
+class SchoolClassResponse(SchoolClassBase):
+    id: int
+    section_id: int
+    class_teacher_id: Optional[int] = None
+    class_teacher: Optional[TeacherSimple] = None
+    class Config:
+        from_attributes = True
+
+class SchoolSectionWithClassesResponse(SchoolSectionResponse):
+    classes: List[SchoolClassResponse] = []
+
 class TeacherBase(BaseModel):
     full_name: str
     qualification: Optional[str] = None

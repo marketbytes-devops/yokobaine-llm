@@ -1,9 +1,9 @@
 from sqlalchemy.orm import Session
-from app.school.models import SchoolProfile, AcademicTerm, Teacher, SchoolSection
+from app.school.models import SchoolProfile, AcademicTerm, Teacher, SchoolSection, SchoolClass
 from app.school.schemas import (
     SchoolProfileCreate, SchoolProfileUpdate, 
     AcademicTermCreate, AcademicTermUpdate,
-    TeacherCreate, TeacherUpdate
+    TeacherCreate, TeacherUpdate, SchoolClassCreate
 )
 
 def get_school_profile(db: Session):
@@ -113,3 +113,58 @@ def delete_teacher(db: Session, teacher_id: int):
         db.delete(teacher)
         db.commit()
     return teacher
+
+# --- NEW METHODS FOR FILTERING ---
+
+def get_sections(db: Session):
+    return db.query(SchoolSection).all()
+
+def get_classes_by_section(db: Session, section_name: str):
+    section = db.query(SchoolSection).filter(SchoolSection.name == section_name).first()
+    if not section:
+        return []
+    return section.classes
+
+def create_class(db: Session, data: SchoolClassCreate):
+    section = get_or_create_section(db, data.section_name)
+    
+    # Prepare data for model
+    class_data = data.model_dump(exclude={"section_name"})
+    class_data["section_id"] = section.id
+    
+    new_class = SchoolClass(**class_data)
+    db.add(new_class)
+    db.commit()
+    db.refresh(new_class)
+    return new_class
+
+def get_teachers_by_section(db: Session, section_name: str):
+    section = db.query(SchoolSection).filter(SchoolSection.name == section_name).first()
+    if not section:
+        return []
+    return section.teachers
+
+def delete_class(db: Session, class_id: int):
+    cls = db.query(SchoolClass).filter(SchoolClass.id == class_id).first()
+    if cls:
+        db.delete(cls)
+        db.commit()
+    return cls
+
+def update_class(db: Session, class_id: int, data: SchoolClassCreate):
+    cls = db.query(SchoolClass).filter(SchoolClass.id == class_id).first()
+    if not cls:
+        return None
+    
+    # Update category if needed
+    section = get_or_create_section(db, data.section_name)
+    cls.section_id = section.id
+    
+    # Update other fields
+    update_data = data.model_dump(exclude={"section_name"}, exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(cls, field, value)
+        
+    db.commit()
+    db.refresh(cls)
+    return cls

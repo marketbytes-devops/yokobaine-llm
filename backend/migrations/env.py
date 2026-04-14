@@ -23,8 +23,11 @@ from app.core.database import Base  # noqa: F401
 # Stage 1 — Auth (already exists)
 import app.authapp.models  # noqa: F401
 
-# Stage 1 — School (add when you create the school module)
+# Stage 1 — School
 import app.school.models  # noqa: F401
+
+# Stage 2 - Academics
+import app.academics.models  # noqa: F401
 
 # Stage 2 — Users / RBAC (Developer 2 adds this)
 # import app.users.models  # noqa: F401
