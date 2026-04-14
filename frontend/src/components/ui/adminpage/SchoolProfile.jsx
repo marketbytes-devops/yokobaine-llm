@@ -70,11 +70,11 @@ export const SchoolProfileModule = () => {
             // 1. Save Profile
             const profileData = {
                 school_name: formData.school_name,
-                reg_number: formData.reg_number,
-                principal_name: formData.principal_name,
-                contact_email: formData.contact_email,
-                phone_number: formData.phone_number,
-                logo_url: formData.logo_url
+                reg_number: formData.reg_number || null,
+                principal_name: formData.principal_name || null,
+                contact_email: formData.contact_email || null,
+                phone_number: formData.phone_number || null,
+                logo_url: formData.logo_url || null
             };
 
             const profileMethod = profileExists ? "PUT" : "POST";
@@ -87,8 +87,8 @@ export const SchoolProfileModule = () => {
             // 2. Save Term
             const termData = {
                 academic_year: formData.academic_year,
-                term_start_date: formData.term_start_date,
-                term_end_date: formData.term_end_date
+                term_start_date: formData.term_start_date || null,
+                term_end_date: formData.term_end_date || null
             };
             
             await fetch(`${API_BASE}/term`, {
