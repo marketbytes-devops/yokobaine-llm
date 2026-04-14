@@ -5,7 +5,8 @@ from app.school import service
 from app.school.schemas import (
     SchoolProfileCreate, SchoolProfileUpdate, SchoolProfileResponse,
     AcademicTermCreate, AcademicTermUpdate, AcademicTermResponse,
-    TeacherCreate, TeacherUpdate, TeacherResponse
+    TeacherCreate, TeacherUpdate, TeacherResponse,
+    SchoolSectionResponse, SchoolClassCreate, SchoolClassResponse
 )
 from typing import List
 
@@ -81,3 +82,43 @@ def remove_teacher(teacher_id: int, db: Session = Depends(get_db)):
     if not deleted:
         raise HTTPException(status_code=404, detail="Teacher not found")
     return {"status": "success", "message": "Teacher removed"}
+
+
+# --- SCHOOL STRUCTURE ENDPOINTS ---
+
+@router.get("/sections", response_model=List[SchoolSectionResponse])
+def list_sections(db: Session = Depends(get_db)):
+    """Get all school sections (Kindergarten, LP, UP, etc.)"""
+    return service.get_sections(db)
+
+@router.get("/sections/{section_name}/teachers", response_model=List[TeacherResponse])
+def list_teachers_by_section(section_name: str, db: Session = Depends(get_db)):
+    """Get list of teachers belonging to a specific section"""
+    return service.get_teachers_by_section(db, section_name)
+
+@router.get("/sections/{section_name}/classes", response_model=List[SchoolClassResponse])
+def list_classes_by_section(section_name: str, db: Session = Depends(get_db)):
+    """Get list of classes belonging to a specific section (e.g. classes in LP)"""
+    return service.get_classes_by_section(db, section_name)
+
+@router.post("/classes", response_model=SchoolClassResponse, status_code=status.HTTP_201_CREATED)
+def add_class(data: SchoolClassCreate, db: Session = Depends(get_db)):
+    """Create a new class within a section"""
+    return service.create_class(db, data)
+
+@router.delete("/classes/{class_id}")
+def remove_class(class_id: int, db: Session = Depends(get_db)):
+    """Delete a school class"""
+    # I need to add this to service as well
+    deleted = service.delete_class(db, class_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Class not found")
+    return {"status": "success", "message": "Class removed"}
+
+@router.put("/classes/{class_id}", response_model=SchoolClassResponse)
+def update_class_config(class_id: int, data: SchoolClassCreate, db: Session = Depends(get_db)):
+    """Update a class configuration"""
+    updated = service.update_class(db, class_id, data)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Class not found")
+    return updated

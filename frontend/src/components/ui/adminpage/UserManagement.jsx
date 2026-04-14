@@ -80,10 +80,11 @@ export const UserManagementModule = () => {
         }
     };
 
-    const currentRoleName = availableRoles.find(r => r.id.toString() === formData.roleId.toString())?.name;
-    const isAdministrativeRole = currentRoleName === "SuperAdmin" || currentRoleName === "Admin";
-    const isTeacherRole = currentRoleName === "Teacher";
+    const currentRoleName = availableRoles.find(r => r.id.toString() === formData.roleId.toString())?.name?.toLowerCase();
+    const isAdministrativeRole = currentRoleName === "superadmin" || currentRoleName === "admin";
+    const isTeacherRole = currentRoleName === "teacher";
     const needsProfileLinking = formData.roleId && !isAdministrativeRole;
+
 
     const filteredTeachersList = teachers.filter(t =>
         selectedSections.length === 0 || t.sectionNames.some(s => selectedSections.includes(s))
@@ -316,10 +317,11 @@ const UserCard = ({ first_name, last_name, role, email, phone_number, is_active 
                 </div>
             </div>
 
-            <div className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-sm border ${roleName === "SuperAdmin" ? "bg-slate-900 border-slate-800 text-white" :
-                roleName === "Teacher" ? "bg-[#0BC48B]/10 border-[#0BC48B]/20 text-[#0BC48B]" :
+            <div className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-sm border ${roleName?.toLowerCase() === "superadmin" ? "bg-slate-900 border-slate-800 text-white" :
+                roleName?.toLowerCase() === "teacher" ? "bg-[#0BC48B]/10 border-[#0BC48B]/20 text-[#0BC48B]" :
                     "bg-indigo-50 border-indigo-100 text-indigo-500"
                 }`}>
+
                 {roleName}
             </div>
         </div>

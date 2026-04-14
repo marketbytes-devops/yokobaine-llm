@@ -2,11 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Save, Plus, BookText, ChevronDown, Edit, Trash2, CheckCircle2, ArrowLeft, XCircle } from 'lucide-react';
 
 export const SubjectManagementModule = ({ onBack }) => {
-    const [classSubjects, setClassSubjects] = useState([
-        { id: 1, names: ["Mathematics", "Hindi"], grade: "Class 10", level: "HIGH SCHOOL" },
-        { id: 2, names: ["Physics", "Chemistry", "English"], grade: "Class 12", level: "HIGHERSECONDARY" },
-        { id: 3, names: ["Environmental Science", "PT"], grade: "Class 3", level: "LP" }
-    ]);
+    const [classSubjects, setClassSubjects] = useState([]);
+    const [availableClasses, setAvailableClasses] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
 
     const [selectedLevel, setSelectedLevel] = useState("HIGH SCHOOL");
     const [isEditing, setIsEditing] = useState(false);
@@ -14,9 +12,12 @@ export const SubjectManagementModule = ({ onBack }) => {
 
     const [formData, setFormData] = useState({
         grade: "",
-        stream: "Science", // Default stream for HS
+        stream: "Science",
         subjectList: [""]
     });
+
+    const API_ACADEMICS = "http://localhost:8000/api/v1/academics";
+    const API_SCHOOL = "http://localhost:8000/api/v1/school";
 
     const levelConfigs = {
         "KG": ["LKG", "UKG"],
@@ -26,14 +27,38 @@ export const SubjectManagementModule = ({ onBack }) => {
         "HIGHERSECONDARY": ["Class 11", "Class 12"]
     };
 
-    const streamOptions = ["Science", "Commerce", "Humanities"];
+    const fetchLevelData = async () => {
+        setIsLoading(true);
+        try {
+            // 1. Fetch available classes for this level (from SCHOOL app)
+            const cRes = await fetch(`${API_SCHOOL}/sections/${selectedLevel}/classes`);
+            const cData = await cRes.json();
+            setAvailableClasses(cData);
+
+            // 2. Fetch existing subjects for this level (from ACADEMICS app)
+            const curRes = await fetch(`${API_ACADEMICS}/subjects/${selectedLevel}`);
+            const curData = await curRes.json();
+            setClassSubjects(curData);
+
+            // Auto-select first available class based on what is not yet configured
+            const remaining = levelConfigs[selectedLevel].filter(cls => !curData.some(sub => sub.target_class === cls));
+            if (!isEditing) {
+                setFormData(prev => ({ ...prev, grade: remaining.length > 0 ? remaining[0] : "" }));
+            }
+        } catch (error) {
+            console.error("Error fetching level data:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     useEffect(() => {
+        fetchLevelData();
         if (!isEditing) {
-            setFormData(prev => ({ 
-                ...prev, 
-                grade: levelConfigs[selectedLevel][0],
-                stream: selectedLevel === "HIGHERSECONDARY" ? "Science" : ""
+            setFormData(prev => ({
+                ...prev,
+                stream: "",
+                subjectList: [""]
             }));
         }
     }, [selectedLevel]);
@@ -56,7 +81,7 @@ export const SubjectManagementModule = ({ onBack }) => {
         setFormData(prev => ({ ...prev, subjectList: newList }));
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         const validSubjects = formData.subjectList.filter(s => s.trim() !== "");
         if (!formData.grade || validSubjects.length === 0) {
             alert("Please select a Class and add at least one Subject.");
@@ -64,44 +89,56 @@ export const SubjectManagementModule = ({ onBack }) => {
         }
 
         const payload = {
-            grade: formData.grade,
-            stream: selectedLevel === "HIGHERSECONDARY" ? formData.stream : "",
-            names: validSubjects,
-            level: selectedLevel
+            target_class: formData.grade,
+            segment: selectedLevel,
+            subjects: validSubjects
         };
 
-        if (isEditing) {
-            setClassSubjects(classSubjects.map(item => 
-                item.id === editId ? { ...item, ...payload } : item
-            ));
-            setIsEditing(false);
-            setEditId(null);
-        } else {
-            setClassSubjects([{ id: Date.now(), ...payload }, ...classSubjects]);
+        try {
+            const method = isEditing ? "PUT" : "POST";
+            const url = isEditing ? `${API_ACADEMICS}/subjects/${editId}` : `${API_ACADEMICS}/subjects`;
+
+            const response = await fetch(url, {
+                method: method,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                alert("Subject configuration saved!");
+                setIsEditing(false);
+                setEditId(null);
+                fetchLevelData();
+                setFormData(prev => ({
+                    ...prev,
+                    stream: "",
+                    subjectList: [""]
+                }));
+            }
+        } catch (error) {
+            console.error("Error saving curriculum:", error);
         }
-        
-        setFormData({
-            grade: levelConfigs[selectedLevel][0],
-            stream: selectedLevel === "HIGHERSECONDARY" ? "Science" : "",
-            subjectList: [""]
-        });
     };
 
     const handleEdit = (item) => {
         setIsEditing(true);
         setEditId(item.id);
-        setSelectedLevel(item.level);
         setFormData({
-            grade: item.grade,
-            stream: item.stream || (item.level === "HIGHERSECONDARY" ? "Science" : ""),
-            subjectList: [...item.names]
+            grade: item.target_class,
+            stream: "",
+            subjectList: [...item.subjects]
         });
     };
 
-
-    const handleDelete = (id) => {
-        if (window.confirm("Delete this class subject configuration?")) {
-            setClassSubjects(classSubjects.filter(item => item.id !== id));
+    const handleDelete = async (id) => {
+        if (!window.confirm("Delete this subject configuration?")) return;
+        try {
+            const response = await fetch(`${API_ACADEMICS}/subjects/${id}`, { method: "DELETE" });
+            if (response.ok) {
+                setClassSubjects(classSubjects.filter(item => item.id !== id));
+            }
+        } catch (error) {
+            console.error("Error deleting curriculum:", error);
         }
     };
 
@@ -110,7 +147,7 @@ export const SubjectManagementModule = ({ onBack }) => {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-100 pb-8">
                 <div className="flex items-center gap-4">
-                    <button 
+                    <button
                         onClick={onBack}
                         className="w-12 h-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:shadow-lg transition-all"
                     >
@@ -129,11 +166,10 @@ export const SubjectManagementModule = ({ onBack }) => {
                     <button
                         key={level}
                         onClick={() => setSelectedLevel(level)}
-                        className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 ${
-                            selectedLevel === level 
-                            ? "bg-[#0BC48B] text-white shadow-lg shadow-[#0BC48B]/30" 
+                        className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 ${selectedLevel === level
+                            ? "bg-[#0BC48B] text-white shadow-lg shadow-[#0BC48B]/30"
                             : "bg-slate-800 text-slate-400 hover:text-white"
-                        }`}
+                            }`}
                     >
                         <div className={`w-3 h-3 rounded-full border-2 ${selectedLevel === level ? "border-white" : "border-slate-600"} flex items-center justify-center`}>
                             {selectedLevel === level && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
@@ -154,37 +190,30 @@ export const SubjectManagementModule = ({ onBack }) => {
                     </div>
 
                     <div className="space-y-6">
-                        <SelectGroup 
-                            label="Target Class" 
-                            options={levelConfigs[selectedLevel]} 
+                        <SelectGroup
+                            label="Target Class"
+                            options={levelConfigs[selectedLevel].filter(cls => 
+                                isEditing 
+                                    ? cls === formData.grade 
+                                    : !classSubjects.some(sub => sub.target_class === cls)
+                            )}
                             value={formData.grade}
-                            onChange={(e) => setFormData({...formData, grade: e.target.value})}
+                            onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
                         />
-                        
-                        {selectedLevel === "HIGHERSECONDARY" && (
-                            <div className="animate-in slide-in-from-top-2 duration-300">
-                                <SelectGroup 
-                                    label="Academic Stream" 
-                                    options={streamOptions} 
-                                    value={formData.stream}
-                                    onChange={(e) => setFormData({...formData, stream: e.target.value})}
-                                />
-                            </div>
-                        )}
-                        
+
                         <div className="space-y-4">
                             <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest ml-1">Subjects List</label>
                             {formData.subjectList.map((sub, idx) => (
                                 <div key={idx} className="flex gap-3 animate-in slide-in-from-left-2 duration-300">
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         placeholder={`Subject ${idx + 1}`}
                                         value={sub}
                                         onChange={(e) => handleSubjectChange(idx, e.target.value)}
-                                        className="flex-1 bg-slate-50 border border-slate-100 px-6 py-4 rounded-[1.5rem] text-sm font-semibold text-slate-800 placeholder-slate-400 outline-none focus:ring-8 focus:ring-[#0BC48B]/5 focus:border-[#0BC48B] transition-all" 
+                                        className="flex-1 bg-slate-50 border border-slate-100 px-6 py-4 rounded-[1.5rem] text-sm font-semibold text-slate-800 placeholder-slate-400 outline-none focus:ring-8 focus:ring-[#0BC48B]/5 focus:border-[#0BC48B] transition-all"
                                     />
                                     {formData.subjectList.length > 1 && (
-                                        <button 
+                                        <button
                                             onClick={() => removeSubjectField(idx)}
                                             className="text-slate-300 hover:text-rose-500 transition-colors"
                                         >
@@ -193,7 +222,7 @@ export const SubjectManagementModule = ({ onBack }) => {
                                     )}
                                 </div>
                             ))}
-                            <button 
+                            <button
                                 onClick={addSubjectField}
                                 className="flex items-center gap-2 text-[10px] font-black text-[#0BC48B] uppercase tracking-widest hover:translate-x-1 transition-all"
                             >
@@ -201,8 +230,8 @@ export const SubjectManagementModule = ({ onBack }) => {
                                 Add More Subject
                             </button>
                         </div>
-                        
-                        <button 
+
+                        <button
                             onClick={handleSave}
                             className="w-full bg-slate-900 text-white px-8 py-5 rounded-[1.8rem] font-black text-sm flex items-center justify-center gap-4 shadow-xl hover:-translate-y-1 active:scale-95 transition-all mt-4"
                         >
@@ -226,27 +255,13 @@ export const SubjectManagementModule = ({ onBack }) => {
                                         <Trash2 size={16} />
                                     </button>
                                 </div>
-                                
-                                <div className="flex gap-2 mb-4">
-                                    <span className="inline-block px-4 py-1.5 bg-slate-100 rounded-full text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                        {item.level}
-                                    </span>
-                                    {item.stream && (
-                                        <span className="inline-block px-4 py-1.5 bg-indigo-50 rounded-full text-[9px] font-black text-indigo-500 uppercase tracking-widest">
-                                            {item.stream}
-                                        </span>
-                                    )}
-                                </div>
-                                
-                                <div className="flex items-center gap-4 mb-4">
-                                    <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center text-white font-black text-lg">
-                                        {item.grade.split(" ")[1] || item.grade}
-                                    </div>
-                                    <h5 className="font-black text-slate-900 text-2xl tracking-tighter">{item.grade}</h5>
+
+                                <div className="flex items-center mb-4">
+                                    <h5 className="font-black text-slate-900 text-3xl tracking-tighter">{item.target_class}</h5>
                                 </div>
 
                                 <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-50">
-                                    {item.names.map((n, i) => (
+                                    {item.subjects.map((n, i) => (
                                         <span key={i} className="px-4 py-2 bg-[#0BC48B]/10 text-[#0BC48B] rounded-xl text-xs font-black uppercase tracking-tight">
                                             {n}
                                         </span>
@@ -265,7 +280,7 @@ const SelectGroup = ({ label, options, value, onChange }) => (
     <div>
         <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest mb-3 ml-1">{label}</label>
         <div className="relative">
-            <select 
+            <select
                 value={value}
                 onChange={onChange}
                 className="w-full bg-slate-50 border border-slate-100 px-6 py-5 rounded-[1.8rem] text-sm font-semibold text-slate-800 outline-none focus:ring-8 focus:ring-[#0BC48B]/5 focus:border-[#0BC48B] appearance-none cursor-pointer"
