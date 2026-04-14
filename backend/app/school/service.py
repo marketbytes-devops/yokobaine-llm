@@ -6,7 +6,55 @@ from app.school.schemas import (
     TeacherCreate, TeacherUpdate
 )
 
-# ... School Profile and Term services ... (skipping for brevity but keeping original)
+def get_school_profile(db: Session):
+    return db.query(SchoolProfile).first()
+
+def create_school_profile(db: Session, data: SchoolProfileCreate):
+    profile = SchoolProfile(**data.model_dump())
+    db.add(profile)
+    db.commit()
+    db.refresh(profile)
+    return profile
+
+def update_school_profile(db: Session, data: SchoolProfileUpdate):
+    profile = get_school_profile(db)
+    if not profile:
+        return None
+        
+    update_data = data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(profile, field, value)
+        
+    db.commit()
+    db.refresh(profile)
+    return profile
+
+def get_active_term(db: Session):
+    return db.query(AcademicTerm).filter(AcademicTerm.is_active == True).order_by(AcademicTerm.id.desc()).first()
+
+def create_term(db: Session, data: AcademicTermCreate):
+    # Deactivate existing active terms before creating new one
+    db.query(AcademicTerm).update({"is_active": False})
+    
+    term = AcademicTerm(**data.model_dump())
+    term.is_active = True
+    db.add(term)
+    db.commit()
+    db.refresh(term)
+    return term
+
+def update_term(db: Session, term_id: int, data: AcademicTermUpdate):
+    term = db.query(AcademicTerm).filter(AcademicTerm.id == term_id).first()
+    if not term:
+        return None
+    
+    update_data = data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(term, field, value)
+        
+    db.commit()
+    db.refresh(term)
+    return term
 
 def get_teachers(db: Session, skip: int = 0, limit: int = 100):
     return db.query(Teacher).offset(skip).limit(limit).all()
