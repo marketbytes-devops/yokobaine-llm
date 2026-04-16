@@ -89,13 +89,16 @@ class TeacherBase(BaseModel):
     full_name: str
     qualification: Optional[str] = None
     subjects: List[str] = []
+    constraints: List[dict] = []
 
 class TeacherCreate(TeacherBase):
-    # We accept names of sections like ["LP", "UP"]
     section_names: List[str] = []
 
-class TeacherUpdate(TeacherBase):
+class TeacherUpdate(BaseModel):
     full_name: Optional[str] = None
+    qualification: Optional[str] = None
+    subjects: Optional[List[str]] = None
+    constraints: Optional[List[dict]] = None
     section_names: Optional[List[str]] = None
 
 class TeacherResponse(TeacherBase):

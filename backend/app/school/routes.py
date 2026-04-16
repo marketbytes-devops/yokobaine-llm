@@ -70,6 +70,7 @@ def register_teacher(data: TeacherCreate, db: Session = Depends(get_db)):
     return service.create_teacher(db, data)
 
 @router.put("/teachers/{teacher_id}", response_model=TeacherResponse)
+@router.patch("/teachers/{teacher_id}", response_model=TeacherResponse)
 def update_teacher_profile(teacher_id: int, data: TeacherUpdate, db: Session = Depends(get_db)):
     updated = service.update_teacher(db, teacher_id, data)
     if not updated:

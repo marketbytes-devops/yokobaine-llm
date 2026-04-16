@@ -33,7 +33,7 @@ import app.academics.models  # noqa: F401
 # import app.users.models  # noqa: F401
 
 # Stage 2 — Timetable
-# import app.timetable.models  # noqa: F401
+import app.timetable.models  # noqa: F401
 
 # Stage 3 — Ledger, Finance, Communication, Settings
 # import app.ledger.models  # noqa: F401
