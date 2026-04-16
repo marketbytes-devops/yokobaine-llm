@@ -326,7 +326,7 @@ const InputGroup = ({ label, placeholder, type, name, value, onChange, icon }) =
             )}
             <input 
                 name={name}
-                value={value}
+                value={value ?? ""}
                 onChange={onChange}
                 type={type} 
                 placeholder={placeholder} 
