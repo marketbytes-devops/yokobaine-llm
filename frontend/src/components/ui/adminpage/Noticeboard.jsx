@@ -1,56 +1,105 @@
-import React, { useState, useRef } from 'react';
-import { Megaphone, Send, Paperclip, CheckSquare, Square, Trash2, CalendarDays } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Megaphone, Send, Paperclip, CheckSquare, Trash2, CalendarDays } from 'lucide-react';
 
 export const NoticeboardModule = () => {
     const fileInputRef = useRef(null);
-    const [notices, setNotices] = useState([
-        { id: 1, title: 'Annual Sports Day 2024', body: 'Please be informed that the Annual Sports Day will be held on the 10th of next month. All students must wear their house uniforms.', audience: ['All Students', 'Teachers Only'], date: '2024-04-08', attachment: 'sports_circular.pdf' },
-        { id: 2, title: 'Staff Meeting Revision', body: 'The weekly staff meeting has been moved from Tuesday to Wednesday 4:00 PM.', audience: ['Teachers Only'], date: '2024-04-07', attachment: null }
-    ]);
+    const [notices, setNotices] = useState([]);
+    const [loading, setLoading] = useState(false);
     
     const [form, setForm] = useState({
         title: '',
-        body: '',
-        audience: [],
-        attachment: null
+        content: '',
+        target_audience: [],
+        attachment_url: null
     });
 
+    const API_BASE_URL = "http://127.0.0.1:8000/api/notices";
+
+    const fetchNotices = async () => {
+        try {
+            const res = await fetch(API_BASE_URL);
+            if (res.ok) {
+                const data = await res.json();
+                setNotices(data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch notices:", err);
+        }
+    };
+
+    useEffect(() => {
+        fetchNotices();
+    }, []);
+
     const toggleAudience = (target) => {
-        if (form.audience.includes(target)) {
-            setForm({ ...form, audience: form.audience.filter(a => a !== target) });
+        if (form.target_audience.includes(target)) {
+            setForm({ ...form, target_audience: form.target_audience.filter(a => a !== target) });
         } else {
-            setForm({ ...form, audience: [...form.audience, target] });
+            setForm({ ...form, target_audience: [...form.target_audience, target] });
         }
     };
 
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            // Check size (Max 5MB)
             if (file.size > 5 * 1024 * 1024) {
                 alert("File exceeds 5MB limit.");
                 return;
             }
-            setForm({ ...form, attachment: file.name });
+            // For now, just setting the name as a placeholder URL
+            // Real implementation would upload to S3/Cloudinary first
+            setForm({ ...form, attachment_url: file.name });
         }
     };
 
-    const handleBroadcast = () => {
-        if (!form.title || !form.body || form.audience.length === 0) return;
-        setNotices([{ 
-            id: Date.now(), 
-            title: form.title, 
-            body: form.body, 
-            audience: form.audience, 
-            date: new Date().toISOString().split('T')[0],
-            attachment: form.attachment 
-        }, ...notices]);
-        setForm({ title: '', body: '', audience: [], attachment: null });
-        if(fileInputRef.current) fileInputRef.current.value = "";
+    const handleBroadcast = async () => {
+        if (!form.title || !form.content || form.target_audience.length === 0) return;
+        
+        setLoading(true);
+        try {
+            const res = await fetch(API_BASE_URL + "/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    title: form.title,
+                    content: form.content,
+                    target_audience: form.target_audience,
+                    category: "General",
+                    is_pinned: false,
+                    attachment_url: form.attachment_url
+                })
+            });
+
+            if (res.ok) {
+                fetchNotices();
+                setForm({ title: '', content: '', target_audience: [], attachment_url: null });
+                if(fileInputRef.current) fileInputRef.current.value = "";
+            } else {
+                const err = await res.json();
+                alert(err.detail || "Failed to post notice");
+            }
+        } catch (err) {
+            alert("Connection error. Is the backend running?");
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const deleteNotice = (id) => {
-        setNotices(notices.filter(n => n.id !== id));
+    const deleteNotice = async (id) => {
+        if (!window.confirm("Are you sure you want to delete this notice?")) return;
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/${id}`, {
+                method: "DELETE"
+            });
+            if (res.ok) {
+                setNotices(notices.filter(n => n.id !== id));
+            } else {
+                alert("Failed to delete notice");
+            }
+        } catch (err) {
+            alert("Connection error");
+        }
     };
 
     return (
@@ -77,16 +126,16 @@ export const NoticeboardModule = () => {
                             
                             <div>
                                 <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest mb-3 ml-1">Message Body</label>
-                                <textarea value={form.body} onChange={e => setForm({...form, body: e.target.value})} className="w-full bg-slate-50/50 border border-slate-100 px-6 py-4 rounded-[1.5rem] text-sm font-semibold text-slate-800 placeholder-slate-400 outline-none focus:ring-4 focus:ring-[#0BC48B]/10 focus:border-[#0BC48B] focus:bg-white transition-all shadow-sm min-h-[160px]" placeholder="Enter announcement details..." />
+                                <textarea value={form.content} onChange={e => setForm({...form, content: e.target.value})} className="w-full bg-slate-50/50 border border-slate-100 px-6 py-4 rounded-[1.5rem] text-sm font-semibold text-slate-800 placeholder-slate-400 outline-none focus:ring-4 focus:ring-[#0BC48B]/10 focus:border-[#0BC48B] focus:bg-white transition-all shadow-sm min-h-[160px]" placeholder="Enter announcement details..." />
                             </div>
 
                             <div>
                                 <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest mb-3 ml-1">Target Audience</label>
                                 <div className="space-y-3 p-1">
                                     {['All Students', 'Specific Class', 'Teachers Only'].map((aud) => (
-                                        <label key={aud} className="flex items-center gap-3 cursor-pointer group">
-                                            <div className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${form.audience.includes(aud) ? 'bg-[#0BC48B] text-white' : 'bg-slate-100 text-transparent group-hover:bg-slate-200'}`}>
-                                                <CheckSquare size={14} className={form.audience.includes(aud) ? 'opacity-100' : 'opacity-0'} />
+                                        <label key={aud} className="flex items-center gap-3 cursor-pointer group" onClick={() => toggleAudience(aud)}>
+                                            <div className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${form.target_audience.includes(aud) ? 'bg-[#0BC48B] text-white' : 'bg-slate-100 text-transparent group-hover:bg-slate-200'}`}>
+                                                <CheckSquare size={14} className={form.target_audience.includes(aud) ? 'opacity-100' : 'opacity-0'} />
                                             </div>
                                             <span className="text-sm font-bold text-slate-700">{aud}</span>
                                         </label>
@@ -99,11 +148,11 @@ export const NoticeboardModule = () => {
                                 <div className="relative">
                                     <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".pdf,image/*" className="hidden" id="file-upload" />
                                     <label htmlFor="file-upload" className="flex items-center justify-center w-full border-2 border-dashed border-slate-200 rounded-[1.5rem] p-6 cursor-pointer hover:border-[#0BC48B] hover:bg-[#0BC48B]/5 transition-all text-slate-500 group">
-                                        {form.attachment ? (
+                                        {form.attachment_url ? (
                                             <div className="flex items-center gap-2">
                                                 <Paperclip size={18} className="text-[#0BC48B]" />
-                                                <span className="text-sm font-bold text-[#0BC48B]">{form.attachment}</span>
-                                                <button onClick={(e) => { e.preventDefault(); setForm({...form, attachment: null}); if(fileInputRef.current) fileInputRef.current.value=""; }} className="ml-2 text-rose-500 bg-rose-50 rounded-full w-6 h-6 flex items-center justify-center"><Trash2 size={12}/></button>
+                                                <span className="text-sm font-bold text-[#0BC48B]">{form.attachment_url}</span>
+                                                <button onClick={(e) => { e.preventDefault(); setForm({...form, attachment_url: null}); if(fileInputRef.current) fileInputRef.current.value=""; }} className="ml-2 text-rose-500 bg-rose-50 rounded-full w-6 h-6 flex items-center justify-center"><Trash2 size={12}/></button>
                                             </div>
                                         ) : (
                                             <div className="flex flex-col items-center gap-2">
@@ -119,8 +168,12 @@ export const NoticeboardModule = () => {
                         </div>
 
                         <div className="mt-8">
-                            <button onClick={handleBroadcast} className={`w-full text-white py-4 rounded-[1.5rem] font-black text-sm flex items-center justify-center gap-2 shadow-lg transition-all ${!form.title || !form.body || form.audience.length === 0 ? 'bg-slate-300 shadow-none cursor-not-allowed' : 'bg-[#0BC48B] shadow-[#0BC48B]/20 hover:-translate-y-0.5 active:scale-95'}`}>
-                                <Send size={16} /> Broadcast Notice
+                            <button 
+                                onClick={handleBroadcast} 
+                                disabled={loading || !form.title || !form.content || form.target_audience.length === 0}
+                                className={`w-full text-white py-4 rounded-[1.5rem] font-black text-sm flex items-center justify-center gap-2 shadow-lg transition-all ${loading || !form.title || !form.content || form.target_audience.length === 0 ? 'bg-slate-300 shadow-none cursor-not-allowed' : 'bg-[#0BC48B] shadow-[#0BC48B]/20 hover:-translate-y-0.5 active:scale-95'}`}
+                            >
+                                <Send size={16} /> {loading ? "Publishing..." : "Broadcast Notice"}
                             </button>
                         </div>
                     </div>
@@ -142,22 +195,22 @@ export const NoticeboardModule = () => {
                                     </button>
                                 </div>
                                 <div className="flex items-center gap-3 mb-4 flex-wrap">
-                                    {notice.audience.map((a, i) => (
+                                    {notice.target_audience.map((a, i) => (
                                         <span key={i} className="text-[9px] font-black uppercase tracking-widest bg-[#0BC48B]/10 text-[#0BC48B] px-3 py-1 rounded-full">
                                             {a}
                                         </span>
                                     ))}
                                     <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1 ml-auto">
-                                        <CalendarDays size={12} /> {notice.date}
+                                        <CalendarDays size={12} /> {new Date(notice.created_at).toLocaleDateString()}
                                     </span>
                                 </div>
                                 <h4 className="font-black text-slate-800 text-lg mb-2 pr-8">{notice.title}</h4>
-                                <p className="text-sm font-semibold text-slate-500 leading-relaxed min-h-[60px] whitespace-pre-wrap">{notice.body}</p>
+                                <p className="text-sm font-semibold text-slate-500 leading-relaxed min-h-[60px] whitespace-pre-wrap">{notice.content}</p>
                                 
-                                {notice.attachment && (
+                                {notice.attachment_url && (
                                     <div className="mt-6 flex items-center gap-2 bg-indigo-50/50 border border-indigo-100 text-indigo-700 w-fit px-4 py-2 rounded-2xl cursor-pointer hover:bg-indigo-50 transition-colors">
                                         <Paperclip size={14} />
-                                        <span className="text-xs font-black">{notice.attachment}</span>
+                                        <span className="text-xs font-black">{notice.attachment_url}</span>
                                     </div>
                                 )}
                             </div>
