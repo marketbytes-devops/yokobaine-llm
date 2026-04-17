@@ -35,3 +35,13 @@ def delete_subject_config(db: Session, config_id: int):
         db.delete(config)
         db.commit()
     return config
+
+def get_all_distinct_subjects(db: Session):
+    configs = db.query(SubjectConfiguration).all()
+    all_subjects = set()
+    for c in configs:
+        # c.subjects is a list of strings stored as JSON
+        for s in c.subjects:
+            if s:
+                all_subjects.add(s)
+    return sorted(list(all_subjects))

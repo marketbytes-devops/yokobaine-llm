@@ -1,3 +1,4 @@
+"use client";
 import React, { useState, useEffect } from 'react';
 import { Save, Plus, BookOpen, Users, MapPin, ChevronDown, Edit, Trash2, CheckCircle2, BookMarked } from 'lucide-react';
 import { SubjectManagementModule } from './SubjectManagement';
@@ -21,7 +22,7 @@ export const SchoolStructureModule = () => {
         room: ""
     });
 
-    const API_BASE = "http://localhost:8000/api/v1/school";
+    const API_BASE = "http://127.0.0.1:8000/api/v1/school";
 
     
     const levelConfigs = {
@@ -37,7 +38,7 @@ export const SchoolStructureModule = () => {
         setIsLoading(true);
         try {
             // Fetch teachers for this segment
-            const tRes = await fetch(`${API_BASE}/sections/${selectedLevel}/teachers`);
+            const tRes = await fetch(`${API_BASE}/teachers`);
             const tData = await tRes.json();
             setTeachers(tData);
 

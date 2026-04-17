@@ -5,6 +5,7 @@ const API_BASE_URL = "http://localhost:8000/api/v1/school";
 
 export const TeacherManagementModule = () => {
     const [teachers, setTeachers] = useState([]);
+    const [dynamicSubjects, setDynamicSubjects] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [editingId, setEditingId] = useState(null);
@@ -20,12 +21,11 @@ export const TeacherManagementModule = () => {
         "Kindergarten", "LP", "UP", "High School", "Higher Secondary"
     ];
 
-    const subjects = [
-        "Mathematics", "Science", "Social Science", "English", "Malayalam", "Hindi", "Physics", "Chemistry", "Biology", "Information Technology"
-    ];
+    const API_ACADEMICS = "http://localhost:8000/api/v1/academics";
 
     useEffect(() => {
         fetchTeachers();
+        fetchSubjects();
     }, []);
 
     const fetchTeachers = async () => {
@@ -42,6 +42,16 @@ export const TeacherManagementModule = () => {
             console.error("Failed to fetch teachers:", error);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const fetchSubjects = async () => {
+        try {
+            const response = await fetch(`${API_ACADEMICS}/all-subjects`);
+            const data = await response.json();
+            setDynamicSubjects(data);
+        } catch (error) {
+            console.error("Failed to fetch subjects:", error);
         }
     };
 
@@ -202,8 +212,8 @@ export const TeacherManagementModule = () => {
                                     value=""
                                     className="w-full bg-slate-50/50 border-2 border-slate-100 px-6 py-4 rounded-[1.5rem] text-sm font-semibold text-slate-800 outline-none focus:ring-8 focus:ring-[#0BC48B]/5 focus:border-[#0BC48B] focus:bg-white transition-all shadow-sm appearance-none cursor-pointer"
                                 >
-                                    <option value="" disabled>Click to select subjects...</option>
-                                    {subjects.filter(s => !formData.subjects.includes(s)).map(s => (
+                                    <option value="" disabled>{dynamicSubjects.length > 0 ? "Click to select subjects..." : "No subjects defined in Repository"}</option>
+                                    {dynamicSubjects.filter(s => !formData.subjects.includes(s)).map(s => (
                                         <option key={s} value={s}>{s}</option>
                                     ))}
                                 </select>

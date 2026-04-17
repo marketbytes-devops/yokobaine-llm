@@ -45,6 +45,7 @@ class Teacher(Base):
     full_name      = Column(String(255), nullable=False)
     qualification  = Column(String(255), nullable=True)
     subjects       = Column(JSON, default=[]) # List of strings
+    constraints    = Column(JSON, default=[]) # List of {day, period} objects
     is_active      = Column(Boolean, default=True)
     created_at     = Column(DateTime, server_default=func.now())
     updated_at     = Column(DateTime, server_default=func.now(), onupdate=func.now())
@@ -72,6 +73,7 @@ class SchoolClass(Base):
     class_name         = Column(String(100), nullable=False) # e.g. Class 10
     section_identifier = Column(String(50), nullable=True)  # e.g. A, B, Jupiter
     stream             = Column(String(100), nullable=True) 
+    room_number        = Column(String(50), nullable=True)
     capacity           = Column(Integer, default=40)
     
     # Foreign Keys
