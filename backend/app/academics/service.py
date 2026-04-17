@@ -40,8 +40,19 @@ def get_all_distinct_subjects(db: Session):
     configs = db.query(SubjectConfiguration).all()
     all_subjects = set()
     for c in configs:
-        # c.subjects is a list of strings stored as JSON
         for s in c.subjects:
             if s:
                 all_subjects.add(s)
     return sorted(list(all_subjects))
+
+def get_subjects_grouped_by_segment(db: Session):
+    configs = db.query(SubjectConfiguration).all()
+    result = {}
+    for c in configs:
+        if c.segment not in result:
+            result[c.segment] = set()
+        for s in c.subjects:
+            if s:
+                result[c.segment].add(s)
+    
+    return {segment: sorted(list(subjects)) for segment, subjects in result.items()}

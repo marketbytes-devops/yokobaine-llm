@@ -16,8 +16,8 @@ export const SubjectManagementModule = ({ onBack }) => {
         subjectList: [""]
     });
 
-    const API_ACADEMICS = "http://localhost:8000/api/v1/academics";
-    const API_SCHOOL = "http://localhost:8000/api/v1/school";
+    const API_ACADEMICS = "http://127.0.0.1:8000/api/v1/academics";
+    const API_SCHOOL = "http://127.0.0.1:8000/api/v1/school";
 
     const levelConfigs = {
         "KG": ["LKG", "UKG"],

@@ -1,11 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Save, UserPlus, GraduationCap, BookOpen, Layers, CheckCircle2, Search, Pencil, X, ChevronDown, Trash2 } from 'lucide-react';
 
-const API_BASE_URL = "http://localhost:8000/api/v1/school";
+const API_BASE_URL = "http://127.0.0.1:8000/api/v1/school";
+const api_academics_url = "http://127.0.0.1:8000/api/v1/academics";
+
+const categoriesMap = {
+    "KG": "Kindergarten", 
+    "LP": "LP", 
+    "UP": "UP", 
+    "HIGH SCHOOL": "High School", 
+    "HIGHERSECONDARY": "Higher Secondary"
+};
+
+const categories = Object.keys(categoriesMap);
 
 export const TeacherManagementModule = () => {
     const [teachers, setTeachers] = useState([]);
-    const [dynamicSubjects, setDynamicSubjects] = useState([]);
+    const [dynamicSubjects, setDynamicSubjects] = useState({}); // Grouped by segment
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [editingId, setEditingId] = useState(null);
@@ -16,12 +27,6 @@ export const TeacherManagementModule = () => {
         qualification: "",
         categories: []
     });
-
-    const categories = [
-        "Kindergarten", "LP", "UP", "High School", "Higher Secondary"
-    ];
-
-    const API_ACADEMICS = "http://localhost:8000/api/v1/academics";
 
     useEffect(() => {
         fetchTeachers();
@@ -47,11 +52,11 @@ export const TeacherManagementModule = () => {
 
     const fetchSubjects = async () => {
         try {
-            const response = await fetch(`${API_ACADEMICS}/all-subjects`);
+            const response = await fetch(`${api_academics_url}/subjects-grouped`);
             const data = await response.json();
             setDynamicSubjects(data);
         } catch (error) {
-            console.error("Failed to fetch subjects:", error);
+            console.error("Failed to fetch subjects grouped:", error);
         }
     };
 
@@ -62,11 +67,24 @@ export const TeacherManagementModule = () => {
     const toggleItem = (field, item) => {
         setFormData(prev => {
             const isSelected = prev[field].includes(item);
-            if (isSelected) {
-                return { ...prev, [field]: prev[field].filter(i => i !== item) };
-            } else {
-                return { ...prev, [field]: [...prev[field], item] };
-            }
+            let nextCategories = isSelected 
+                ? prev[field].filter(i => i !== item) 
+                : [...prev[field], item];
+            
+            // Cleanup subjects that no longer belong to selected sections
+            const availableForNext = nextCategories.reduce((acc, cat) => {
+                const subs = dynamicSubjects[cat] || [];
+                subs.forEach(s => { if(!acc.includes(s)) acc.push(s); });
+                return acc;
+            }, []);
+
+            const nextSubjects = prev.subjects.filter(s => availableForNext.includes(s));
+
+            return { 
+                ...prev, 
+                [field]: nextCategories,
+                subjects: nextSubjects 
+            };
         });
     };
 
@@ -139,6 +157,14 @@ export const TeacherManagementModule = () => {
         setFormData({ full_name: "", subjects: [], qualification: "", categories: [] });
     };
 
+    const availableSubjects = formData.categories.reduce((acc, cat) => {
+        const subjectsForCat = dynamicSubjects[cat] || [];
+        subjectsForCat.forEach(s => {
+            if (!acc.includes(s)) acc.push(s);
+        });
+        return acc;
+    }, []).sort();
+
     const filteredTeachers = teachers.filter(t =>
         t.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (t.subjects || []).some(s => s.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -189,10 +215,36 @@ export const TeacherManagementModule = () => {
                             onChange={(e) => handleInputChange("full_name", e.target.value)}
                         />
 
+                        {/* 2. Teaching Sections */}
                         <div>
-                            <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest mb-3 ml-1">Subjects Taught</label>
+                            <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest mb-4 ml-1">
+                                2. Teaching Sections {formData.full_name ? <span className="text-[#0BC48B] ml-2 font-black">(Next Step)</span> : ""}
+                            </label>
+                            <div className="grid grid-cols-1 gap-3">
+                                {categories.map(catKey => (
+                                    <button
+                                        key={catKey}
+                                        disabled={!formData.full_name}
+                                        onClick={() => toggleItem("categories", catKey)}
+                                        className={`flex items-center justify-between px-6 py-4 rounded-2xl font-bold text-sm transition-all border-2 ${formData.categories.includes(catKey)
+                                            ? "bg-slate-900 border-slate-900 text-white shadow-lg shadow-slate-900/20"
+                                            : "bg-slate-50 border-slate-100 text-slate-400 hover:border-slate-200"
+                                            } ${!formData.full_name ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    >
+                                        {categoriesMap[catKey]}
+                                        {formData.categories.includes(catKey) && <CheckCircle2 size={16} className="text-[#0BC48B]" />}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
 
-                            {/* Tags display */}
+                        {/* 3. Subjects Taught */}
+                        <div className={!formData.categories.length ? "opacity-50 pointer-events-none" : ""}>
+                            <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest mb-3 ml-1">
+                                3. Subjects Taught {formData.categories.length > 0 ? <span className="text-[#0BC48B] ml-2 font-black">(Select multiple)</span> : ""}
+                            </label>
+
+                            {/* Tags display for Multiple Subjects */}
                             <div className="flex flex-wrap gap-2 mb-4 min-h-[32px]">
                                 {formData.subjects.map(s => (
                                     <span key={s} className="bg-[#0BC48B]/10 text-[#0BC48B] px-3 py-1.5 rounded-xl text-[10px] font-black flex items-center gap-2 border border-[#0BC48B]/20 animate-in zoom-in duration-300">
@@ -200,11 +252,16 @@ export const TeacherManagementModule = () => {
                                         <X size={12} className="cursor-pointer hover:text-rose-500 transition-colors" onClick={() => removeSubject(s)} />
                                     </span>
                                 ))}
-                                {formData.subjects.length === 0 && <span className="text-[10px] text-slate-400 font-bold italic py-1.5 ml-1">No subjects selected...</span>}
+                                {formData.subjects.length === 0 && (
+                                    <span className="text-[10px] text-slate-400 font-bold italic py-1.5 ml-1">
+                                        {formData.categories.length === 0 ? "Select sections first..." : "No subjects selected..."}
+                                    </span>
+                                )}
                             </div>
 
                             <div className="relative group">
                                 <select
+                                    disabled={!formData.categories.length}
                                     onChange={(e) => {
                                         addSubject(e.target.value);
                                         e.target.value = ""; // Reset select
@@ -212,8 +269,14 @@ export const TeacherManagementModule = () => {
                                     value=""
                                     className="w-full bg-slate-50/50 border-2 border-slate-100 px-6 py-4 rounded-[1.5rem] text-sm font-semibold text-slate-800 outline-none focus:ring-8 focus:ring-[#0BC48B]/5 focus:border-[#0BC48B] focus:bg-white transition-all shadow-sm appearance-none cursor-pointer"
                                 >
-                                    <option value="" disabled>{dynamicSubjects.length > 0 ? "Click to select subjects..." : "No subjects defined in Repository"}</option>
-                                    {dynamicSubjects.filter(s => !formData.subjects.includes(s)).map(s => (
+                                    <option value="" disabled>
+                                        {formData.categories.length === 0 
+                                            ? "Select sections to see subjects" 
+                                            : availableSubjects.length > 0 
+                                                ? "Click to select subjects (You can add multiple)..." 
+                                                : "No subjects defined for these sections"}
+                                    </option>
+                                    {availableSubjects.filter(s => !formData.subjects.includes(s)).map(s => (
                                         <option key={s} value={s}>{s}</option>
                                     ))}
                                 </select>
@@ -221,32 +284,13 @@ export const TeacherManagementModule = () => {
                             </div>
                         </div>
 
+                        {/* 4. Qualification */}
                         <InputGroup
-                            label="Qualification"
+                            label="4. Qualification"
                             placeholder="PhD, M.Ed"
                             value={formData.qualification}
                             onChange={(e) => handleInputChange("qualification", e.target.value)}
                         />
-
-                        {/* Section Categories Checkboxes */}
-                        <div>
-                            <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest mb-4 ml-1">Teaching Sections</label>
-                            <div className="grid grid-cols-1 gap-3">
-                                {categories.map(cat => (
-                                    <button
-                                        key={cat}
-                                        onClick={() => toggleItem("categories", cat)}
-                                        className={`flex items-center justify-between px-6 py-4 rounded-2xl font-bold text-sm transition-all border-2 ${formData.categories.includes(cat)
-                                            ? "bg-slate-900 border-slate-900 text-white shadow-lg shadow-slate-900/20"
-                                            : "bg-slate-50 border-slate-100 text-slate-400 hover:border-slate-200"
-                                            }`}
-                                    >
-                                        {cat}
-                                        {formData.categories.includes(cat) && <CheckCircle2 size={16} className="text-[#0BC48B]" />}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
 
                         <button
                             onClick={handleSave}
@@ -325,10 +369,10 @@ const TeacherCard = ({ teacher, onEdit, onDelete }) => {
 
                 <div className="flex flex-col items-end gap-3 w-full md:w-auto">
                     <div className="flex flex-wrap gap-2 md:justify-end">
-                        {teacher.categories.map(cat => (
-                            <div key={cat} className="px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-100 text-[8px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2">
+                        {teacher.categories.map(catKey => (
+                            <div key={catKey} className="px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-100 text-[8px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2">
                                 <span className="w-1.5 h-1.5 rounded-full bg-[#0BC48B]"></span>
-                                {cat}
+                                {categoriesMap[catKey] || catKey}
                             </div>
                         ))}
                     </div>

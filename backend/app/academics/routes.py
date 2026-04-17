@@ -18,6 +18,11 @@ def get_all_subjects(db: Session = Depends(get_db)):
     """Get a flat list of all unique subjects defined in Subject Repository"""
     return service.get_all_distinct_subjects(db)
 
+@router.get("/subjects-grouped")
+def get_subjects_grouped(db: Session = Depends(get_db)):
+    """Get subjects grouped by segment"""
+    return service.get_subjects_grouped_by_segment(db)
+
 @router.post("/subjects", response_model=SubjectConfigResponse, status_code=status.HTTP_201_CREATED)
 def add_subject_config(data: SubjectConfigCreate, db: Session = Depends(get_db)):
     return service.create_subject_config(db, data)

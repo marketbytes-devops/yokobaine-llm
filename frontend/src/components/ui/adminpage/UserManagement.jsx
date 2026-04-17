@@ -25,15 +25,15 @@ export const UserManagementModule = () => {
 
     const fetchData = async () => {
         try {
-            const roleRes = await fetch("http://localhost:8000/api/auth/roles");
+            const roleRes = await fetch("http://127.0.0.1:8000/api/auth/roles");
             const roleData = await roleRes.json();
             setAvailableRoles(roleData);
 
-            const userRes = await fetch("http://localhost:8000/api/auth/users");
+            const userRes = await fetch("http://127.0.0.1:8000/api/auth/users");
             const userData = await userRes.json();
             setUsers(userData);
 
-            const teacherRes = await fetch("http://localhost:8000/api/v1/school/teachers");
+            const teacherRes = await fetch("http://127.0.0.1:8000/api/v1/school/teachers");
             const teacherData = await teacherRes.json();
             // Map backend structure for easier filtering
             setTeachers(teacherData.map(t => ({
@@ -102,7 +102,7 @@ export const UserManagementModule = () => {
 
         setLoading(true);
         try {
-            const res = await fetch("http://localhost:8000/api/auth/register", {
+            const res = await fetch("http://127.0.0.1:8000/api/auth/register", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

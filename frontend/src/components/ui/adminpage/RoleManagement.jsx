@@ -12,7 +12,7 @@ export const RoleManagementModule = () => {
     // Fetch existing roles
     const fetchRoles = async () => {
         try {
-            const res = await fetch("http://localhost:8000/api/auth/roles");
+            const res = await fetch("http://127.0.0.1:8000/api/auth/roles");
             const data = await res.json();
             if (Array.isArray(data)) {
                 setRoles(data);
