@@ -88,8 +88,8 @@ class SchoolSectionWithClassesResponse(SchoolSectionResponse):
 class TeacherBase(BaseModel):
     full_name: str
     qualification: Optional[str] = None
-    subjects: List[str] = []
-    constraints: List[dict] = []
+    subjects: Optional[List[str]] = []
+    constraints: Optional[List[dict]] = []
 
 class TeacherCreate(TeacherBase):
     section_names: List[str] = []

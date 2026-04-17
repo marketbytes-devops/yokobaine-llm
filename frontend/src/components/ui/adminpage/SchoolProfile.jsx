@@ -20,7 +20,7 @@ export const SchoolProfileModule = () => {
     // Dedicated state for the preview tab so that formData can be cleared
     const [savedViewData, setSavedViewData] = useState(null);
 
-    const API_BASE = "http://localhost:8000/api/v1/school";
+    const API_BASE = "http://127.0.0.1:8000/api/v1/school";
 
     useEffect(() => {
         fetchData();

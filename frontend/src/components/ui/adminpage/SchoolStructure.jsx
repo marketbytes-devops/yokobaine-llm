@@ -53,6 +53,20 @@ export const SchoolStructureModule = () => {
         }
     };
 
+    // Map to translate SchoolStructure segments to TeacherManagement categories
+    const segmentMap = {
+        "KG": "Kindergarten",
+        "LP": "LP",
+        "UP": "UP",
+        "HIGH SCHOOL": "High School",
+        "HIGHERSECONDARY": "Higher Secondary"
+    };
+
+    // Derived teachers list based on selectedLevel
+    const filteredTeachersForLevel = teachers.filter(t => 
+        t.sections && t.sections.some(s => s.name === segmentMap[selectedLevel])
+    );
+
     useEffect(() => {
         fetchData();
         if (!isEditing) {
@@ -238,8 +252,8 @@ export const SchoolStructureModule = () => {
                                     onChange={(e) => handleInputChange("teacherId", e.target.value)}
                                     className="w-full bg-slate-50/50 border border-slate-100 px-6 py-5 rounded-[1.8rem] text-sm font-semibold text-slate-800 outline-none focus:ring-8 focus:ring-[#0BC48B]/5 focus:border-[#0BC48B] focus:bg-white transition-all appearance-none cursor-pointer shadow-sm"
                                 >
-                                    <option value="">Select Teacher...</option>
-                                    {teachers.map(t => (
+                                    <option value="">{filteredTeachersForLevel.length > 0 ? "Select Teacher..." : "No teachers in this segment"}</option>
+                                    {filteredTeachersForLevel.map(t => (
                                         <option key={t.id} value={t.id}>{t.full_name}</option>
                                     ))}
                                 </select>
