@@ -1,3 +1,4 @@
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.school.models import SchoolProfile, AcademicTerm, Teacher, SchoolSection, SchoolClass
 from app.school.schemas import (
@@ -125,9 +126,31 @@ def get_classes_by_section(db: Session, section_name: str):
         return []
     return section.classes
 
+from sqlalchemy import func
+
 def create_class(db: Session, data: SchoolClassCreate):
     section = get_or_create_section(db, data.section_name)
     
+    # Case-insensitive uniqueness check
+    query = db.query(SchoolClass).filter(
+        SchoolClass.section_id == section.id,
+        func.lower(SchoolClass.class_name) == data.class_name.lower()
+    )
+    
+    if data.section_identifier:
+        query = query.filter(func.lower(SchoolClass.section_identifier) == data.section_identifier.lower())
+    else:
+        query = query.filter(SchoolClass.section_identifier == None)
+        
+    existing = query.first()
+    
+    if existing:
+        ident = f" {data.section_identifier}" if data.section_identifier else ""
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Class {data.class_name}{ident} already exists in {data.section_name}."
+        )
+
     # Prepare data for model
     class_data = data.model_dump(exclude={"section_name"})
     class_data["section_id"] = section.id
@@ -156,8 +179,30 @@ def update_class(db: Session, class_id: int, data: SchoolClassCreate):
     if not cls:
         return None
     
-    # Update category if needed
     section = get_or_create_section(db, data.section_name)
+    
+    # Check if we are changing to something that already exists elsewhere
+    query = db.query(SchoolClass).filter(
+        SchoolClass.section_id == section.id,
+        func.lower(SchoolClass.class_name) == data.class_name.lower(),
+        SchoolClass.id != class_id
+    )
+    
+    if data.section_identifier:
+        query = query.filter(func.lower(SchoolClass.section_identifier) == data.section_identifier.lower())
+    else:
+        query = query.filter(SchoolClass.section_identifier == None)
+        
+    duplicate = query.first()
+    
+    if duplicate:
+        ident = f" {data.section_identifier}" if data.section_identifier else ""
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Another class with name {data.class_name}{ident} already exists."
+        )
+
+    # Update category if needed
     cls.section_id = section.id
     
     # Update other fields
@@ -168,3 +213,4 @@ def update_class(db: Session, class_id: int, data: SchoolClassCreate):
     db.commit()
     db.refresh(cls)
     return cls
+
