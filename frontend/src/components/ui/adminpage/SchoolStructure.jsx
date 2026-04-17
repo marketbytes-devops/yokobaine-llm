@@ -111,7 +111,7 @@ export const SchoolStructureModule = () => {
 
             if (response.ok) {
                 alert(isEditing ? "Configuration updated!" : "Class created!");
-                fetchData(); // Refresh list
+                await fetchData(); // Refresh list
                 
                 // Reset form and state
                 setIsEditing(false);
@@ -125,10 +125,12 @@ export const SchoolStructureModule = () => {
                     room: ""
                 });
             } else {
-                alert("Failed to save class configuration.");
+                const errorData = await response.json();
+                alert(errorData.detail || "Failed to save class configuration.");
             }
         } catch (error) {
             console.error("Error saving class:", error);
+            alert("An error occurred while connecting to the server.");
         }
     };
 
