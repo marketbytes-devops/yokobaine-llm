@@ -48,6 +48,10 @@ def generate_timetable(db: Session, request: schemas.TimetableGenerateRequest):
     if request.stream:
         classes_query = classes_query.filter(SchoolClass.stream == request.stream)
     
+    # If specific class_ids are provided, filter further
+    if request.class_ids:
+        classes_query = classes_query.filter(SchoolClass.id.in_(request.class_ids))
+    
     classes = classes_query.all()
     class_ids = [c.id for c in classes]
     
@@ -75,7 +79,8 @@ def generate_timetable(db: Session, request: schemas.TimetableGenerateRequest):
             "subject_name": w.subject_name,
             "teacher_id": w.teacher_id,
             "teacher_name": teacher_map.get(w.teacher_id, "Unknown"),
-            "periods_per_week": w.periods_per_week
+            "periods_per_week": w.periods_per_week,
+            "is_double": w.is_double
         } for w in workloads
     ]
     
@@ -85,13 +90,40 @@ def generate_timetable(db: Session, request: schemas.TimetableGenerateRequest):
         periods=config.periods,
         workloads=workload_data,
         drill_periods=config.drill_periods,
+        fixed_slots=config.fixed_slots or [],
         class_teachers=class_teachers,
-        teacher_constraints=teacher_constraints
+        teacher_constraints=teacher_constraints,
+        class_ids=class_ids
     )
+
     
     solution_grid = generator.generate()
     
     if solution_grid:
+        # Fill empty slots with assigned subjects to satisfy "Fully Fill" requirement without "Self Study"
+        for cid in solution_grid:
+            class_subjects = [w for w in workload_data if w['class_id'] == cid]
+            subject_cycle = 0
+            
+            for day in config.days:
+                for p in range(config.periods):
+                    if solution_grid[cid][day][p] is None:
+                        if class_subjects:
+                            sub = class_subjects[subject_cycle % len(class_subjects)]
+                            solution_grid[cid][day][p] = {
+                                "subject": sub['subject_name'],
+                                "teacher_id": sub['teacher_id'],
+                                "teacher_name": sub['teacher_name']
+                            }
+                            subject_cycle += 1
+                        else:
+                            # Fallback if no subjects at all are defined for this class
+                            solution_grid[cid][day][p] = {
+                                "subject": "Library/Free",
+                                "teacher_id": -1,
+                                "teacher_name": "N/A"
+                            }
+
         # Save solution to DB (One record per class)
         # First clear old solutions for these classes
         db.query(models.TimetableSolution).filter(models.TimetableSolution.class_id.in_(class_ids)).delete(synchronize_session=False)

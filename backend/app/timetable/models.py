@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, JSON, ForeignKey, Boolean, DateTime, func
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+from app.school.models import SchoolClass, Teacher
 
 class TimetableConfig(Base):
     __tablename__ = "timetable_configs"
@@ -13,9 +14,11 @@ class TimetableConfig(Base):
     duration     = Column(Integer, default=45)
     breaks       = Column(JSON, default=[])         # List of break objects
     drill_periods = Column(JSON, default=[])        # List of drill period objects
+    fixed_slots   = Column(JSON, default=[])        # New: Assembly, Lunch, etc.
     is_active    = Column(Boolean, default=True)
     created_at   = Column(DateTime, server_default=func.now())
     updated_at   = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
 
 class ClassWorkload(Base):
     __tablename__ = "timetable_workloads"
@@ -26,6 +29,8 @@ class ClassWorkload(Base):
     subject_name     = Column(String(100), nullable=False)
     teacher_id       = Column(Integer, ForeignKey("teachers.id"), nullable=False)
     periods_per_week = Column(Integer, nullable=False)
+    is_double        = Column(Boolean, default=False) # For Lab subjects
+
     
     # Relationships
     school_class = relationship("SchoolClass")
