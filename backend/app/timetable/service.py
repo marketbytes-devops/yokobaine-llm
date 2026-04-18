@@ -1,3 +1,4 @@
+from typing import Any, List
 from sqlalchemy.orm import Session
 from app.timetable import models, schemas
 from app.school.models import SchoolClass, Teacher, SchoolSection
@@ -140,11 +141,26 @@ def generate_timetable(db: Session, request: schemas.TimetableGenerateRequest):
         db.commit()
         
         # Format response for frontend consumption
-        # Include class metadata
+        # Include class metadata and solution IDs
         response_data = {}
         for c in classes:
-            response_data[f"{c.class_name} {c.section_identifier}"] = solution_grid.get(c.id)
+            # Find the solution object we just created
+            sol = next((s for s in db.query(models.TimetableSolution).filter(models.TimetableSolution.class_id == c.id).all()), None)
+            response_data[f"{c.class_name} {c.section_identifier}"] = {
+                "id": sol.id if sol else None,
+                "grid": solution_grid.get(c.id)
+            }
 
         return {"status": "success", "timetable": response_data}
     
     return {"status": "error", "message": "No conflict-free solution found. Try reducing complexity or adding more periods."}
+
+def update_solution_grid(db: Session, solution_id: int, grid_data: Any):
+    solution = db.query(models.TimetableSolution).filter(models.TimetableSolution.id == solution_id).first()
+    if not solution:
+        return None
+    
+    solution.grid_data = grid_data
+    db.commit()
+    db.refresh(solution)
+    return solution

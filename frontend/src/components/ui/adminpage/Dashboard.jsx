@@ -2,13 +2,31 @@ import React from 'react';
 import { Wallet, TrendingDown, Users, MoreHorizontal, Grid } from "lucide-react";
 
 export const DashboardModule = () => {
+    const [greeting, setGreeting] = React.useState("");
+    const adminName = "Nithya Pradeep";
+
+    React.useEffect(() => {
+        const updateGreeting = () => {
+            const hour = new Date().getHours();
+            if (hour >= 5 && hour < 12) setGreeting("Good morning");
+            else if (hour >= 12 && hour < 17) setGreeting("Good afternoon");
+            else if (hour >= 17 && hour < 22) setGreeting("Good evening");
+            else setGreeting("Good night");
+        };
+
+        updateGreeting();
+        // Update greeting every minute in case the user leaves the tab open
+        const interval = setInterval(updateGreeting, 60000);
+        return () => clearInterval(interval);
+    }, []);
+
     return (
         <div className="space-y-8 animate-in fade-in duration-700">
             {/* Greeting Banner */}
             <div className="relative rounded-[3rem] bg-gradient-to-br from-[#0BC48B] via-[#0BC48B] to-[#2ECC91] p-12 text-white shadow-2xl shadow-[#0BC48B]/20 overflow-hidden min-h-[220px] flex items-center">
                 <div className="relative z-10 w-full flex flex-col md:flex-row md:items-center justify-between gap-8">
                     <div>
-                        <h1 className="text-4xl font-black mb-3 drop-shadow-sm">👋 Hi Nithya Pradeep, Great to see you again!</h1>
+                        <h1 className="text-4xl font-black mb-3 drop-shadow-sm">👋 {greeting}, {adminName}! Great to see you again!</h1>
                         <p className="text-white/90 text-lg font-bold tracking-tight opacity-80">Hope your day is going great at Yokobaine LLM.</p>
                     </div>
                     <button className="bg-white/10 backdrop-blur-xl border border-white/20 px-8 py-4 rounded-[1.5rem] font-black text-sm flex items-center gap-3 hover:bg-white/20 transition-all shadow-lg active:scale-95 shrink-0">

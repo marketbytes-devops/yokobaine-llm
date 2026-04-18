@@ -205,6 +205,7 @@ export const TimetableBuilderModule = () => {
                                 stream={globalTime.stream}
                                 apiTimetable={API_BASE_TIMETABLE}
                                 apiSchool={API_BASE_SCHOOL}
+                                workloads={workloads}
                             />}
 
             
@@ -939,7 +940,7 @@ const StepCConstraints = ({ onNext, onPrev, apiSchool }) => {
     </div>
 )};
 
-const StepDOutputGrid = ({ onPrev, level, stream, apiTimetable, apiSchool }) => {
+const StepDOutputGrid = ({ onPrev, level, stream, apiTimetable, apiSchool, workloads }) => {
     const [timetableData, setTimetableData] = useState(null);
     const [selectedClass, setSelectedClass] = useState('');
     const [selectedTeacher, setSelectedTeacher] = useState('');
@@ -1002,21 +1003,20 @@ const StepDOutputGrid = ({ onPrev, level, stream, apiTimetable, apiSchool }) => 
         const teacherSched = {};
         
         Object.keys(timetableData).forEach(clsName => {
-            const grid = timetableData[clsName];
-            if (!grid) return;
+            const solution = timetableData[clsName];
+            if (!solution || !solution.grid) return;
+            const grid = solution.grid;
+            
             Object.keys(grid).forEach(day => {
                 const slots = grid[day];
-                if (!slots) return;
+                if (!Array.isArray(slots)) return;
+                
                 slots.forEach((slot, pIdx) => {
                     if (slot && slot.teacher_id !== -1) {
                         const tName = slot.teacher_name;
                         if (!teacherSched[tName]) teacherSched[tName] = {};
                         if (!teacherSched[tName][day]) teacherSched[tName][day] = [];
                         
-                        // We store the slot info
-                        if (!teacherSched[tName][day]) {
-                            // Initialize with empty slots if needed, but easier to just store occupied ones
-                        }
                         teacherSched[tName][day].push({ p: pIdx + 1, cls: clsName, sub: slot.subject });
                     }
                 });
@@ -1025,7 +1025,8 @@ const StepDOutputGrid = ({ onPrev, level, stream, apiTimetable, apiSchool }) => 
         return teacherSched;
     };
 
-    const currentSchedule = selectedClass ? timetableData[selectedClass] : null;
+    const currentSolution = selectedClass ? timetableData[selectedClass] : null;
+    const currentSchedule = currentSolution?.grid;
     const days = currentSchedule ? Object.keys(currentSchedule) : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 
     const downloadCSV = () => {
@@ -1152,7 +1153,18 @@ const StepDOutputGrid = ({ onPrev, level, stream, apiTimetable, apiSchool }) => 
                     </div>
 
                     {viewMode === 'class' ? (
-                        <ClassTimetableGrid schedule={currentSchedule} days={days} />
+                        <ClassTimetableGrid 
+                            scheduleData={timetableData[selectedClass]} 
+                            days={days} 
+                            apiTimetable={apiTimetable}
+                            onUpdate={(newGrid) => {
+                                setTimetableData({
+                                    ...timetableData,
+                                    [selectedClass]: { ...timetableData[selectedClass], grid: newGrid }
+                                });
+                            }}
+                            classWorkloads={workloads.filter(w => w.class_name === selectedClass)}
+                        />
                     ) : (
                         <TeacherTimetableList teacherName={selectedTeacher} fullSchedule={getTeacherTimetable()} />
                     )}
@@ -1164,15 +1176,66 @@ const StepDOutputGrid = ({ onPrev, level, stream, apiTimetable, apiSchool }) => 
     );
 };
 
-const ClassTimetableGrid = ({ schedule, days }) => {
-    if (!schedule) return null;
+const ClassTimetableGrid = ({ scheduleData, days, apiTimetable, onUpdate, classWorkloads }) => {
+    if (!scheduleData) return null;
+    const { id: solutionId, grid: schedule } = scheduleData;
     const periodsCount = Object.values(schedule)[0].length;
+    
+    const [dragged, setDragged] = React.useState(null);
+
+    const handleDragStart = (day, pIdx, slot) => {
+        if (!slot) return;
+        setDragged({ day, pIdx, slot });
+    };
+
+    const handleDrop = async (toDay, toPIdx) => {
+        if (!dragged) return;
+        const newGrid = JSON.parse(JSON.stringify(schedule));
+        
+        const sourceSlot = newGrid[dragged.day][dragged.pIdx];
+        const targetSlot = newGrid[toDay][toPIdx];
+
+        // Swap
+        newGrid[toDay][toPIdx] = sourceSlot;
+        newGrid[dragged.day][dragged.pIdx] = targetSlot;
+
+        setDragged(null);
+        onUpdate(newGrid);
+
+        // Save to backend
+        try {
+            await fetch(`${apiTimetable}/solution/${solutionId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newGrid)
+            });
+        } catch (err) { console.error("Error updating manual timetable:", err); }
+    };
+
+    const handleManualSubject = async (day, pIdx, workload) => {
+        const newGrid = JSON.parse(JSON.stringify(schedule));
+        newGrid[day][pIdx] = {
+            subject: workload.subject,
+            teacher_id: workload.teacher_id,
+            teacher_name: workload.teacher
+        };
+        onUpdate(newGrid);
+        try {
+            await fetch(`${apiTimetable}/solution/${solutionId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newGrid)
+            });
+        } catch (err) { console.error("Error updating manual timetable:", err); }
+    };
 
     return (
         <div className="overflow-x-auto pb-6 animate-in fade-in duration-500">
             <div className="min-w-[1000px]">
                 <div className="grid grid-cols-[140px_repeat(6,1fr)] gap-4 mb-6">
-                    <div className="p-4"></div>
+                    <div className="p-4">
+                         <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full text-center">Interactive Mode</p>
+                    </div>
                     {days.map(day => (
                         <div key={day} className="p-5 bg-slate-900 rounded-[1.5rem] text-center font-black text-white text-xs tracking-widest uppercase shadow-xl shadow-slate-900/10">{day}</div>
                     ))}
@@ -1186,23 +1249,50 @@ const ClassTimetableGrid = ({ schedule, days }) => {
                         {days.map(day => {
                             const slot = schedule[day][pIdx];
                             const isSpecial = slot?.teacher_id === -1;
-                            const isSelfStudy = slot?.subject === 'Self Study';
+                            const isSelfStudy = slot?.subject === 'Self Study' || slot?.subject?.includes('Free');
                             
                             return (
-                                <div key={day} className={`p-5 rounded-[1.8rem] border flex flex-col justify-center items-center text-center transition-all ${
-                                    isSpecial && !isSelfStudy ? 'bg-indigo-50 border-indigo-100' : isSelfStudy ? 'bg-amber-50/30 border-amber-100/50' : 'bg-white border-slate-100 hover:shadow-md'
-                                }`}>
+                                <div 
+                                    key={day} 
+                                    draggable={!!slot}
+                                    onDragStart={() => handleDragStart(day, pIdx, slot)}
+                                    onDragOver={(e) => e.preventDefault()}
+                                    onDrop={() => handleDrop(day, pIdx)}
+                                    className={`p-5 rounded-[1.8rem] border flex flex-col justify-center items-center text-center transition-all cursor-move ${
+                                        isSpecial && !isSelfStudy ? 'bg-indigo-50 border-indigo-100' : isSelfStudy ? 'bg-amber-50/10 border-amber-100/30' : 'bg-white border-slate-100 hover:shadow-lg hover:border-[#0BC48B]/30'
+                                    } ${dragged?.day === day && dragged?.pIdx === pIdx ? 'opacity-30 scale-95' : ''}`}
+                                >
                                     {slot ? (
                                         <>
                                             <span className={`font-black text-xs tracking-tight ${isSpecial && !isSelfStudy ? 'text-indigo-600' : isSelfStudy ? 'text-amber-600' : 'text-slate-800'}`}>{slot.subject}</span>
-                                            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-2">{slot.teacher_name === 'N/A' ? 'Auto-Filled' : slot.teacher_name}</span>
+                                            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-2">{slot.teacher_name === 'N/A' || !slot.teacher_name ? 'Auto-Filled' : slot.teacher_name}</span>
                                         </>
-                                    ) : <span className="text-[10px] font-bold text-slate-200">Free</span>}
+                                    ) : (
+                                        <div className="group relative w-full h-full flex items-center justify-center">
+                                            <span className="text-[10px] font-bold text-slate-200 group-hover:hidden">Empty</span>
+                                            <div className="hidden group-hover:flex items-center gap-1 scale-90">
+                                                <select 
+                                                    onChange={(e) => {
+                                                        const w = classWorkloads.find(x => x.subject === e.target.value);
+                                                        if (w) handleManualSubject(day, pIdx, w);
+                                                    }}
+                                                    className="bg-slate-50 text-[9px] font-black uppercase border border-slate-100 rounded-lg px-2 py-1 outline-none"
+                                                >
+                                                    <option value="">Fill...</option>
+                                                    {classWorkloads.map((w, idx) => <option key={idx} value={w.subject}>{w.subject}</option>)}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}
                     </div>
                 ))}
+            </div>
+            <div className="mt-6 flex items-center gap-2 px-6">
+                <div className="w-2 h-2 bg-[#0BC48B] rounded-full animate-pulse" />
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Drag and drop subjects to reorder. Changes save automatically.</p>
             </div>
         </div>
     );
