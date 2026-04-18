@@ -16,8 +16,7 @@ def get_db():
 
 @router.post("/", response_model=schemas.NoticeResponse)
 def create_new_notice(notice: schemas.NoticeCreate, db: Session = Depends(get_db)):
-    # Note: In a real scenario, we'd get the user_id from the current logged-in user
-    # For now, using a placeholder user_id (e.g., 1)
+    
     return service.create_notice(db=db, notice=notice, user_id=1)
 
 @router.get("/", response_model=List[schemas.NoticeResponse])

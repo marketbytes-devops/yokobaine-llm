@@ -82,6 +82,16 @@ class SchoolClassResponse(SchoolClassBase):
     class Config:
         from_attributes = True
 
+class SchoolClassSummaryResponse(BaseModel):
+    id: Optional[int] = None
+    class_name: str
+    section_identifier: Optional[str] = None
+    section_name: str
+    teacher_name: Optional[str] = None
+    student_count: int
+    class Config:
+        from_attributes = True
+
 class SchoolSectionWithClassesResponse(SchoolSectionResponse):
     classes: List[SchoolClassResponse] = []
 

@@ -31,6 +31,7 @@ import app.academics.models  # noqa: F401
 
 # Stage 2 — Users / RBAC (Developer 2 adds this)
 # import app.users.models  # noqa: F401
+import app.students.models  # noqa: F401
 
 # Stage 2 — Timetable
 import app.timetable.models  # noqa: F401
