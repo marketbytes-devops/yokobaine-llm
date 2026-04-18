@@ -6,9 +6,10 @@ from app.school.schemas import (
     SchoolProfileCreate, SchoolProfileUpdate, SchoolProfileResponse,
     AcademicTermCreate, AcademicTermUpdate, AcademicTermResponse,
     TeacherCreate, TeacherUpdate, TeacherResponse,
-    SchoolSectionResponse, SchoolClassCreate, SchoolClassResponse
+    SchoolSectionResponse, SchoolClassCreate, SchoolClassResponse,
+    SchoolClassSummaryResponse
 )
-from typing import List
+from typing import List, Optional
 
 router = APIRouter(prefix="/api/v1/school", tags=["School"])
 
@@ -101,6 +102,11 @@ def list_teachers_by_section(section_name: str, db: Session = Depends(get_db)):
 def list_classes_by_section(section_name: str, db: Session = Depends(get_db)):
     """Get list of classes belonging to a specific section (e.g. classes in LP)"""
     return service.get_classes_by_section(db, section_name)
+
+@router.get("/class-summaries", response_model=List[SchoolClassSummaryResponse])
+def get_class_summaries(section_name: Optional[str] = None, db: Session = Depends(get_db)):
+    """Get summaries of classes including student counts and teacher names"""
+    return service.get_class_summaries(db, section_name)
 
 @router.post("/classes", response_model=SchoolClassResponse, status_code=status.HTTP_201_CREATED)
 def add_class(data: SchoolClassCreate, db: Session = Depends(get_db)):
