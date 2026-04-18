@@ -8,8 +8,10 @@ class TimetableConfigBase(BaseModel):
     days: List[str]
     periods: int
     duration: int
-    breaks: List[dict] = []
-    drill_periods: List[dict] = []
+    breaks: Optional[List[dict]] = []
+    drill_periods: Optional[List[dict]] = []
+    fixed_slots: Optional[List[dict]] = []
+
 
 class TimetableConfigCreate(TimetableConfigBase):
     pass
@@ -26,6 +28,8 @@ class WorkloadBase(BaseModel):
     subject_name: str
     teacher_id: int
     periods_per_week: int
+    is_double: Optional[bool] = False
+
 
 class WorkloadCreate(WorkloadBase):
     pass
@@ -39,3 +43,5 @@ class TimetableGenerateRequest(BaseModel):
     level: str
     stream: Optional[str] = None
     term_id: Optional[int] = None
+    class_ids: Optional[List[int]] = None
+
