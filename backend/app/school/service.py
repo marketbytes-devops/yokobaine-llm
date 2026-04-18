@@ -1,5 +1,6 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app.school.models import SchoolProfile, AcademicTerm, Teacher, SchoolSection, SchoolClass
 from app.school.schemas import (
     SchoolProfileCreate, SchoolProfileUpdate, 
@@ -121,12 +122,12 @@ def get_sections(db: Session):
     return db.query(SchoolSection).all()
 
 def get_classes_by_section(db: Session, section_name: str):
-    section = db.query(SchoolSection).filter(SchoolSection.name == section_name).first()
+    section = db.query(SchoolSection).filter(func.lower(SchoolSection.name) == section_name.lower()).first()
     if not section:
         return []
     return section.classes
 
-from sqlalchemy import func
+
 
 def create_class(db: Session, data: SchoolClassCreate):
     section = get_or_create_section(db, data.section_name)
@@ -162,7 +163,7 @@ def create_class(db: Session, data: SchoolClassCreate):
     return new_class
 
 def get_teachers_by_section(db: Session, section_name: str):
-    section = db.query(SchoolSection).filter(SchoolSection.name == section_name).first()
+    section = db.query(SchoolSection).filter(func.lower(SchoolSection.name) == section_name.lower()).first()
     if not section:
         return []
     return section.teachers
