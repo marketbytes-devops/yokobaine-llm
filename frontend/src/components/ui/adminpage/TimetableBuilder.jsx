@@ -204,7 +204,10 @@ export const TimetableBuilderModule = () => {
                                 level={globalTime.level}
                                 stream={globalTime.stream}
                                 apiTimetable={API_BASE_TIMETABLE}
+                                apiSchool={API_BASE_SCHOOL}
+                                workloads={workloads}
                             />}
+
             
         </div>
     );
@@ -318,47 +321,56 @@ const StepAGlobalTime = ({ data, setData, onNext, onSave }) => {
                         <InputGroup label="Period Duration (mins)" type="number" value={data.duration} onChange={(e) => setData({ ...data, duration: e.target.value })} />
                     </div>
 
-                    {/* Drill Period Configuration */}
-                    {data.level !== "HIGHERSECONDARY" && (
-                        <div className="pt-6 border-t border-slate-50 animate-in fade-in">
-                            <div className="flex items-center justify-between mb-4">
-                                <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest ml-1 text-indigo-500">Mass Drill Periods</label>
-                                <button onClick={addDrill} className="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-1 hover:text-indigo-600 transition-colors"><Plus size={12} /> Add Drill</button>
-                            </div>
-                            <div className="space-y-3">
-                                {(data.drillPeriods || []).map((dp) => (
-                                    <div key={dp.id} className="flex items-center gap-4 bg-indigo-50/30 p-4 rounded-3xl border border-indigo-50/50 relative group">
-                                        <div className="flex-1">
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Activity Day</span>
-                                            <select 
-                                                value={dp.day} 
-                                                onChange={(e) => updateDrill(dp.id, 'day', e.target.value)}
-                                                className="w-full bg-transparent text-sm font-black text-slate-800 outline-none cursor-pointer"
-                                            >
-                                                {data.days.map(d => <option key={d} value={d}>{d}</option>)}
-                                            </select>
-                                        </div>
-                                        <div className="flex-1">
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Period No.</span>
-                                            <select 
-                                                value={dp.period} 
-                                                onChange={(e) => updateDrill(dp.id, 'period', parseInt(e.target.value))}
-                                                className="w-full bg-transparent text-sm font-black text-slate-800 outline-none cursor-pointer"
-                                            >
-                                                {Array.from({length: data.periods}, (_, i) => (
-                                                    <option key={i+1} value={i+1}>Period {i+1}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <button onClick={() => removeDrill(dp.id)} className="absolute -right-2 -top-2 bg-white border border-slate-100 text-rose-500 w-7 h-7 flex items-center justify-center rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Trash2 size={12} />
-                                        </button>
-                                    </div>
-                                ))}
-                                {(!data.drillPeriods || data.drillPeriods.length === 0) && <p className="text-[10px] font-bold text-slate-400 italic">No drill periods set (Default: Normal academic flow)</p>}
-                            </div>
+                    {/* Fixed Events (Assembly, Lunch, etc) Configuration */}
+                    <div className="pt-6 border-t border-slate-50 animate-in fade-in">
+                        <div className="flex items-center justify-between mb-4">
+                            <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest ml-1 text-indigo-500">Fixed Events (Assembly, Lunch, etc)</label>
+                            <button onClick={() => setData({ ...data, fixed_slots: [...(data.fixed_slots || []), { id: Date.now(), day: 'All', period: 1, subject: 'Lunch' }] })} className="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-1 hover:text-indigo-600 transition-colors"><Plus size={12} /> Add Event</button>
                         </div>
-                    )}
+                        <div className="space-y-3">
+                            {(data.fixed_slots || []).map((fs) => (
+                                <div key={fs.id} className="grid grid-cols-3 gap-3 bg-indigo-50/30 p-4 rounded-3xl border border-indigo-50/50 relative group">
+                                    <div>
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Activity</span>
+                                        <input 
+                                            value={fs.subject} 
+                                            onChange={(e) => setData({ ...data, fixed_slots: data.fixed_slots.map(s => s.id === fs.id ? { ...s, subject: e.target.value } : s) })}
+                                            className="w-full bg-transparent text-sm font-black text-slate-800 outline-none"
+                                            placeholder="e.g. Assembly"
+                                        />
+                                    </div>
+                                    <div>
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Day</span>
+                                        <select 
+                                            value={fs.day} 
+                                            onChange={(e) => setData({ ...data, fixed_slots: data.fixed_slots.map(s => s.id === fs.id ? { ...s, day: e.target.value } : s) })}
+                                            className="w-full bg-transparent text-sm font-black text-slate-800 outline-none cursor-pointer"
+                                        >
+                                            <option value="All">All Days</option>
+                                            {data.days.map(d => <option key={d} value={d}>{d}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Period</span>
+                                        <select 
+                                            value={fs.period} 
+                                            onChange={(e) => setData({ ...data, fixed_slots: data.fixed_slots.map(s => s.id === fs.id ? { ...s, period: parseInt(e.target.value) } : s) })}
+                                            className="w-full bg-transparent text-sm font-black text-slate-800 outline-none cursor-pointer"
+                                        >
+                                            {Array.from({length: data.periods}, (_, i) => (
+                                                <option key={i+1} value={i+1}>Period {i+1}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <button onClick={() => setData({ ...data, fixed_slots: data.fixed_slots.filter(s => s.id !== fs.id) })} className="absolute -right-2 -top-2 bg-white border border-slate-100 text-rose-500 w-7 h-7 flex items-center justify-center rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Trash2 size={12} />
+                                    </button>
+                                </div>
+                            ))}
+                            {(!data.fixed_slots || data.fixed_slots.length === 0) && <p className="text-[10px] font-bold text-slate-400 italic">No fixed events set.</p>}
+                        </div>
+                    </div>
+
                 </div>
                 <div className="space-y-8">
                     <div>
@@ -407,6 +419,8 @@ const StepAGlobalTime = ({ data, setData, onNext, onSave }) => {
     const [selectedSubjectId, setSelectedSubjectId] = useState('');
     const [selectedTeacherId, setSelectedTeacherId] = useState('');
     const [periods, setPeriods] = useState('');
+    const [isDouble, setIsDouble] = useState(false);
+
 
     const [classes, setClasses] = useState([]);
     const [subjects, setSubjects] = useState([]);
@@ -481,18 +495,24 @@ const StepAGlobalTime = ({ data, setData, onNext, onSave }) => {
             const fetchExistingWorkloads = async () => {
                 try {
                     const res = await fetch(`${apiTimetable}/workload/${selectedClassId}`);
-                    if (!res.ok) throw new Error("Failed to fetch");
+                    if (!res.ok) {
+                        const errorData = await res.json().catch(() => ({ detail: res.statusText }));
+                        throw new Error(errorData.detail || `Server error: ${res.status}`);
+                    }
                     const data = await res.json();
                     
                     // Map API response to frontend structure
                     // Ensure type safety when finding teachers
                     const mapped = data.map(item => {
                         const teacherObj = teachers.find(t => String(t.id) === String(item.teacher_id));
+                        const classObj = classes.find(c => String(c.id) === String(item.class_id));
                         return {
+                            ...item,
                             id: item.id,
                             class_id: item.class_id,
+                            class_name: classObj ? `${classObj.class_name} ${classObj.section_identifier}` : 'Unknown Class',
                             subject: item.subject_name,
-                            teacher: teacherObj ? teacherObj.full_name : 'Loading...',
+                            teacher: teacherObj ? teacherObj.full_name : 'Teacher Name',
                             teacher_id: item.teacher_id,
                             periods: item.periods_per_week
                         };
@@ -508,7 +528,9 @@ const StepAGlobalTime = ({ data, setData, onNext, onSave }) => {
             if (subjects.length > 0) {
                 const selectedCls = classes.find(c => c.id === parseInt(selectedClassId));
                 if (selectedCls) {
-                    const config = subjects.find(s => s.target_class === selectedCls.class_name);
+                    const config = subjects.find(s => 
+                        s.target_class && s.target_class.toLowerCase().trim() === selectedCls.class_name.toLowerCase().trim()
+                    );
                     if (config) setAvailableSubjects(config.subjects);
                     else setAvailableSubjects([]);
                 }
@@ -535,6 +557,7 @@ const StepAGlobalTime = ({ data, setData, onNext, onSave }) => {
             subject_name: selectedSubjectId,
             teacher_id: parseInt(selectedTeacherId),
             periods_per_week: parseInt(periods),
+            is_double: isDouble, // New field
             config_id: currentConfig?.id || null
         };
 
@@ -553,17 +576,20 @@ const StepAGlobalTime = ({ data, setData, onNext, onSave }) => {
                     id: newItem.id,
                     subject: selectedSubjectId,
                     teacher: teacherObj?.full_name,
-                    periods: parseInt(periods)
+                    periods: parseInt(periods),
+                    is_double: isDouble
                 };
                 
                 setWorkloads([...workloads, newMapping]);
                 setSelectedSubjectId('');
                 setSelectedTeacherId('');
                 setPeriods('');
+                setIsDouble(false);
             }
         } catch (err) {
             console.error("Error saving workload:", err);
         }
+
     };
 
     const isFormValid = selectedClassId && selectedSubjectId && selectedTeacherId && periods;
@@ -724,13 +750,25 @@ const StepAGlobalTime = ({ data, setData, onNext, onSave }) => {
                             </div>
                         </div>
                     </div>
-                    <InputGroup 
-                        label="Periods Needed Per Week" 
-                        type="number" 
-                        value={periods}
-                        onChange={(e) => setPeriods(e.target.value)}
-                        placeholder="e.g., 5" 
-                    />
+                    <div className="grid grid-cols-2 gap-6 items-end">
+                        <InputGroup 
+                            label="Periods Needed" 
+                            type="number" 
+                            value={periods}
+                            onChange={(e) => setPeriods(e.target.value)}
+                            placeholder="e.g., 5" 
+                        />
+                        <label className="flex items-center gap-3 px-6 py-4 bg-slate-50 border border-slate-100 rounded-3xl cursor-pointer hover:bg-white transition-all shadow-sm">
+                            <input 
+                                type="checkbox" 
+                                checked={isDouble} 
+                                onChange={(e) => setIsDouble(e.target.checked)}
+                                className="w-5 h-5 accent-[#0BC48B] rounded cursor-pointer" 
+                            />
+                            <span className="text-[11px] font-black text-slate-800 uppercase tracking-widest leading-none">Double Period (Lab)</span>
+                        </label>
+                    </div>
+
                     
                     <button 
                         onClick={handleMapWorkload} 
@@ -758,7 +796,7 @@ const StepAGlobalTime = ({ data, setData, onNext, onSave }) => {
                 <h3 className="font-black text-xl text-slate-800 tracking-tight mb-8">Mapped Workloads ({workloads.length})</h3>
                 <div className="space-y-4">
                     {workloads.map((w) => (
-                        <MappingCard key={w.id} cls={w.cls} sub={w.subject} tr={w.teacher} n={w.periods} />
+                        <MappingCard key={w.id} cls={w.class_name || 'Mapped Class'} sub={w.subject} tr={w.teacher} n={w.periods} />
                     ))}
                     {workloads.length === 0 && (
                         <div className="text-center py-20 bg-white/50 rounded-3xl border border-dashed border-slate-200">
@@ -902,11 +940,33 @@ const StepCConstraints = ({ onNext, onPrev, apiSchool }) => {
     </div>
 )};
 
-const StepDOutputGrid = ({ onPrev, level, stream, apiTimetable }) => {
+const StepDOutputGrid = ({ onPrev, level, stream, apiTimetable, apiSchool, workloads }) => {
     const [timetableData, setTimetableData] = useState(null);
     const [selectedClass, setSelectedClass] = useState('');
+    const [selectedTeacher, setSelectedTeacher] = useState('');
+    const [viewMode, setViewMode] = useState('class'); // class, teacher
     const [status, setStatus] = useState('idle'); // idle, generating, success, error
     const [error, setError] = useState(null);
+    const [classes, setClasses] = useState([]);
+    const [selectedClasses, setSelectedClasses] = useState([]);
+    const [teachers, setTeachers] = useState([]);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!level || !apiSchool) return;
+            try {
+                const cRes = await fetch(`http://127.0.0.1:8000/api/v1/school/sections/${level}/classes`);
+                const cData = await cRes.json();
+                setClasses(cData);
+                setSelectedClasses(cData.map(c => c.id)); // Default: all in level
+
+                const tRes = await fetch(`${apiSchool}/teachers`);
+                const tData = await tRes.json();
+                setTeachers(tData);
+            } catch (err) { console.error("Fetch error in StepD:", err); }
+        };
+        fetchData();
+    }, [level, apiSchool]);
 
     const generateTimetable = async () => {
         setStatus('generating');
@@ -918,6 +978,7 @@ const StepDOutputGrid = ({ onPrev, level, stream, apiTimetable }) => {
                 body: JSON.stringify({ 
                     level, 
                     stream: stream || null,
+                    class_ids: selectedClasses.length > 0 ? selectedClasses : null,
                     term_id: null 
                 })
             });
@@ -937,153 +998,347 @@ const StepDOutputGrid = ({ onPrev, level, stream, apiTimetable }) => {
         }
     };
 
-    const handleDragStart = (e, day, slotIdx) => {
-        e.dataTransfer.setData("day", day);
-        e.dataTransfer.setData("slotIdx", slotIdx);
-    };
-
-    const handleDrop = (e, destDay, destSlotIdx) => {
-        e.preventDefault();
-        const sourceDay = e.dataTransfer.getData("day");
-        const sourceSlotIdx = parseInt(e.dataTransfer.getData("slotIdx"));
-
-        if (sourceDay === destDay && sourceSlotIdx === destSlotIdx) return;
-
-        const newData = { ...timetableData };
-        const classSched = { ...newData[selectedClass] };
+    const getTeacherTimetable = () => {
+        if (!timetableData) return null;
+        const teacherSched = {};
         
-        // Clone columns
-        const sourceCol = [...classSched[sourceDay]];
-        const destCol = [...classSched[destDay]];
-
-        // Swap
-        const sourceItem = sourceCol[sourceSlotIdx];
-        const destItem = destCol[destSlotIdx];
-
-        sourceCol[sourceSlotIdx] = destItem;
-        destCol[destSlotIdx] = sourceItem;
-
-        classSched[sourceDay] = sourceCol;
-        classSched[destDay] = destCol;
-        newData[selectedClass] = classSched;
-
-        setTimetableData(newData);
+        Object.keys(timetableData).forEach(clsName => {
+            const solution = timetableData[clsName];
+            if (!solution || !solution.grid) return;
+            const grid = solution.grid;
+            
+            Object.keys(grid).forEach(day => {
+                const slots = grid[day];
+                if (!Array.isArray(slots)) return;
+                
+                slots.forEach((slot, pIdx) => {
+                    if (slot && slot.teacher_id !== -1) {
+                        const tName = slot.teacher_name;
+                        if (!teacherSched[tName]) teacherSched[tName] = {};
+                        if (!teacherSched[tName][day]) teacherSched[tName][day] = [];
+                        
+                        teacherSched[tName][day].push({ p: pIdx + 1, cls: clsName, sub: slot.subject });
+                    }
+                });
+            });
+        });
+        return teacherSched;
     };
 
-    const currentSchedule = selectedClass ? timetableData[selectedClass] : null;
-    const days = currentSchedule ? Object.keys(currentSchedule) : [];
+    const currentSolution = selectedClass ? timetableData[selectedClass] : null;
+    const currentSchedule = currentSolution?.grid;
+    const days = currentSchedule ? Object.keys(currentSchedule) : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+
+    const downloadCSV = () => {
+        if (!timetableData || !selectedClass) return;
+        const schedule = timetableData[selectedClass];
+        if (!schedule) return;
+
+        const days = Object.keys(schedule);
+        const periodsCount = schedule[days[0]].length;
+        
+        let csvContent = `Timetable for ${selectedClass}\n\n`;
+        csvContent += "Period," + days.join(",") + "\n";
+
+        for (let p = 0; p < periodsCount; p++) {
+            let row = `Period ${p + 1}`;
+            days.forEach(day => {
+                const slot = schedule[day][p];
+                if (slot) {
+                    row += `,"${slot.subject} (${slot.teacher_name === 'N/A' ? 'Fixed' : slot.teacher_name})"`;
+                } else {
+                    row += ',"Free"';
+                }
+            });
+            csvContent += row + "\n";
+        }
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Timetable_${selectedClass.replace(/\s+/g, '_')}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const toggleClassSelection = (id) => {
+        if (selectedClasses.includes(id)) setSelectedClasses(selectedClasses.filter(c => c !== id));
+        else setSelectedClasses([...selectedClasses, id]);
+    };
 
     return (
         <div className="bg-white rounded-[3rem] p-8 lg:p-14 border border-slate-50 shadow-2xl animate-in slide-in-from-right-4">
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-12 gap-6">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-8 gap-6">
                 <div>
-                    <h3 className="font-black text-3xl text-slate-800 tracking-tight leading-none">Timetable Output</h3>
+                    <h3 className="font-black text-3xl text-slate-800 tracking-tight leading-none">Timetable Engine</h3>
                     <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-3">Level: {level} {stream && `| Stream: ${stream}`}</p>
                 </div>
                 
-                {status === 'success' && (
-                    <div className="flex flex-wrap gap-3">
-                         {Object.keys(timetableData).map(cls => (
-                             <button 
-                                key={cls}
-                                onClick={() => setSelectedClass(cls)}
-                                className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${selectedClass === cls ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/20' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}
-                             >
-                                {cls}
-                             </button>
-                         ))}
-                    </div>
-                )}
-
                 <div className="flex gap-4 w-full lg:w-auto">
-                    <button onClick={onPrev} className="flex-1 lg:flex-none bg-slate-50 text-slate-600 px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-colors">Adjust Mappings</button>
+                    <button onClick={onPrev} className="flex-1 lg:flex-none bg-slate-50 text-slate-600 px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-colors">Settings</button>
                     <button 
                         onClick={generateTimetable} 
                         disabled={status === 'generating'}
                         className="flex-1 lg:flex-none bg-[#0BC48B] text-white px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl shadow-[#0BC48B]/20 hover:-translate-y-1 active:scale-95 transition-all disabled:opacity-50"
                     >
                         {status === 'generating' ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Play size={16} fill="currentColor" />}
-                        {status === 'idle' ? 'Generate Timetable' : 'Re-Generate'}
+                        {status === 'idle' ? 'Generate' : 'Re-Generate'}
                     </button>
                 </div>
             </div>
 
-            {error && (
-                <div className="mb-10 bg-rose-50 border border-rose-100 p-6 rounded-[2rem] flex items-start gap-5 animate-in shake duration-500">
-                    <AlertOctagon className="text-rose-500 shrink-0 mt-1" size={24} />
-                    <div>
-                        <h4 className="font-black text-rose-700 text-md">Generation Error</h4>
-                        <p className="text-xs font-bold text-rose-500/80 mt-2 leading-relaxed">{error}</p>
+            {/* Class Selection for Generation */}
+            {status !== 'success' && (
+                <div className="mb-10 p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Select Classes to Generate For:</label>
+                    <div className="flex flex-wrap gap-3">
+                        {classes.map(c => (
+                            <button 
+                                key={c.id} 
+                                onClick={() => toggleClassSelection(c.id)}
+                                className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${selectedClasses.includes(c.id) ? 'bg-[#0BC48B] text-white shadow-lg shadow-[#0BC48B]/20' : 'bg-white text-slate-400 border border-slate-100'}`}
+                            >
+                                {c.class_name} {c.section_identifier}
+                            </button>
+                        ))}
+                        {(!classes || classes.length === 0) && (
+                            <p className="text-[10px] font-bold text-slate-400 italic py-2 px-1">No classes found in this section. Go to School Structure to add them.</p>
+                        )}
                     </div>
+
                 </div>
             )}
 
-            {!timetableData && status !== 'generating' && (
-                <div className="py-32 bg-slate-50 rounded-[4rem] border-2 border-dashed border-slate-100 text-center flex flex-col items-center">
-                    <div className="w-20 h-20 bg-white rounded-[2rem] shadow-sm flex items-center justify-center text-slate-200 mb-8 border border-slate-50">
-                        <CalendarDays size={40} />
-                    </div>
-                    <h4 className="font-black text-slate-400 text-lg uppercase tracking-widest">Ready to calculate assignments</h4>
-                    <p className="text-xs text-slate-400 mt-3 font-bold">The engine will process your workloads and constraints to build a conflict-free grid.</p>
-                </div>
-            )}
-
-            {status === 'generating' && (
-                <div className="py-32 text-center animate-pulse">
-                     <div className="w-20 h-20 bg-[#0BC48B]/10 rounded-[2rem] flex items-center justify-center text-[#0BC48B] mb-8 mx-auto">
-                        <Play size={40} className="animate-spin-slow" />
-                    </div>
-                    <h4 className="font-black text-[#0BC48B] text-lg uppercase tracking-widest">Running Search Algorithm...</h4>
-                    <p className="text-xs text-slate-400 mt-3 font-bold">Evaluating millions of teacher-class combinations</p>
-                </div>
-            )}
-
-            {timetableData && currentSchedule && (
-                <div className="overflow-x-auto pb-6 animate-in fade-in duration-700">
-                    <div className="min-w-[1000px]">
-                        <div className="grid grid-cols-[140px_repeat(6,1fr)] gap-4 mb-6">
-                            <div className="p-4"></div>
-                            {days.map(day => (
-                                <div key={day} className="p-5 bg-slate-900 rounded-[1.5rem] text-center font-black text-white text-xs tracking-widest uppercase shadow-xl shadow-slate-900/10">{day}</div>
-                            ))}
+            {status === 'success' && (
+                <div className="flex flex-col gap-8">
+                    {/* View Controls */}
+                    <div className="flex flex-wrap items-center justify-between gap-6 bg-slate-900 p-6 rounded-[2.5rem] shadow-xl">
+                        <div className="flex bg-white/10 p-1.5 rounded-2xl">
+                            <button onClick={() => setViewMode('class')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'class' ? 'bg-white text-slate-900 shadow-lg' : 'text-white/60 hover:text-white'}`}>Class-Wise</button>
+                            <button onClick={() => setViewMode('teacher')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'teacher' ? 'bg-white text-slate-900 shadow-lg' : 'text-white/60 hover:text-white'}`}>Teacher-Wise</button>
                         </div>
-                        
-                        {Object.keys(currentSchedule[days[0]]).map((_, periodIdx) => (
-                                <div key={periodIdx} className="grid grid-cols-[140px_repeat(6,1fr)] gap-4 mb-4">
-                                    <div className="p-5 bg-slate-50 rounded-[1.5rem] flex flex-col items-center justify-center border border-slate-100 text-center shadow-sm font-black text-xs text-slate-600">
-                                        Period {periodIdx + 1}
-                                    </div>
-                                    {days.map(day => {
-                                        const slot = currentSchedule[day][periodIdx];
-                                        const isDrill = slot?.subject === "Mass Drill";
-                                        
-                                        return (
-                                            <div 
-                                                key={day} 
-                                                draggable={!isDrill}
-                                                onDragStart={(e) => handleDragStart(e, day, periodIdx)}
-                                                onDragOver={(e) => !isDrill && e.preventDefault()}
-                                                onDrop={(e) => !isDrill && handleDrop(e, day, periodIdx)}
-                                                className={`p-5 rounded-[1.8rem] border flex flex-col justify-center items-center text-center transition-all ${
-                                                !isDrill ? 'hover:scale-[1.02] cursor-move shadow-sm bg-white border-slate-100 hover:border-[#0BC48B]/30' : 'bg-amber-50 border-amber-100 cursor-not-allowed opacity-80'
-                                            }`}>
-                                                {slot ? (
-                                                    <>
-                                                        <span className={`font-black text-sm tracking-tight ${isDrill ? 'text-amber-600' : 'text-slate-800'}`}>{slot.subject}</span>
-                                                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-2">{isDrill ? 'All Staff' : slot.teacher_name}</span>
-                                                    </>
-                                                ) : <span className="text-[10px] font-bold text-slate-200">Empty</span>}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                             ))}
+
+                        {viewMode === 'class' ? (
+                            <div className="flex flex-wrap gap-2">
+                                {Object.keys(timetableData).map(cls => (
+                                    <button 
+                                       key={cls}
+                                       onClick={() => setSelectedClass(cls)}
+                                       className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${selectedClass === cls ? 'bg-[#0BC48B] text-white' : 'text-white/40 hover:text-white/80'}`}
+                                    >
+                                       {cls}
+                                    </button>
+                                ))}
+                            </div>
+                        ) : (
+                            <select 
+                                onChange={(e) => setSelectedTeacher(e.target.value)}
+                                className="bg-white/10 text-white text-[10px] font-black uppercase tracking-widest border-none outline-none px-4 py-2.5 rounded-xl cursor-pointer"
+                            >
+                                <option value="" className="text-slate-900">Select Teacher...</option>
+                                {Object.keys(getTeacherTimetable() || {}).sort().map(t => (
+                                    <option key={t} value={t} className="text-slate-900">{t}</option>
+                                ))}
+                            </select>
+                        )}
+
+                        <div className="flex gap-2">
+                            <button onClick={downloadCSV} className="p-3 bg-white/10 text-white rounded-xl hover:bg-white/20 transition-all flex items-center gap-2">
+                                <Save size={18} />
+                                <span className="text-[10px] font-black uppercase tracking-widest px-2">Export CSV</span>
+                            </button>
+                        </div>
                     </div>
+
+                    {viewMode === 'class' ? (
+                        <ClassTimetableGrid 
+                            scheduleData={timetableData[selectedClass]} 
+                            days={days} 
+                            apiTimetable={apiTimetable}
+                            onUpdate={(newGrid) => {
+                                setTimetableData({
+                                    ...timetableData,
+                                    [selectedClass]: { ...timetableData[selectedClass], grid: newGrid }
+                                });
+                            }}
+                            classWorkloads={workloads.filter(w => w.class_name === selectedClass)}
+                        />
+                    ) : (
+                        <TeacherTimetableList teacherName={selectedTeacher} fullSchedule={getTeacherTimetable()} />
+                    )}
                 </div>
             )}
+
+
         </div>
     );
 };
+
+const ClassTimetableGrid = ({ scheduleData, days, apiTimetable, onUpdate, classWorkloads }) => {
+    if (!scheduleData) return null;
+    const { id: solutionId, grid: schedule } = scheduleData;
+    const periodsCount = Object.values(schedule)[0].length;
+    
+    const [dragged, setDragged] = React.useState(null);
+
+    const handleDragStart = (day, pIdx, slot) => {
+        if (!slot) return;
+        setDragged({ day, pIdx, slot });
+    };
+
+    const handleDrop = async (toDay, toPIdx) => {
+        if (!dragged) return;
+        const newGrid = JSON.parse(JSON.stringify(schedule));
+        
+        const sourceSlot = newGrid[dragged.day][dragged.pIdx];
+        const targetSlot = newGrid[toDay][toPIdx];
+
+        // Swap
+        newGrid[toDay][toPIdx] = sourceSlot;
+        newGrid[dragged.day][dragged.pIdx] = targetSlot;
+
+        setDragged(null);
+        onUpdate(newGrid);
+
+        // Save to backend
+        try {
+            await fetch(`${apiTimetable}/solution/${solutionId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newGrid)
+            });
+        } catch (err) { console.error("Error updating manual timetable:", err); }
+    };
+
+    const handleManualSubject = async (day, pIdx, workload) => {
+        const newGrid = JSON.parse(JSON.stringify(schedule));
+        newGrid[day][pIdx] = {
+            subject: workload.subject,
+            teacher_id: workload.teacher_id,
+            teacher_name: workload.teacher
+        };
+        onUpdate(newGrid);
+        try {
+            await fetch(`${apiTimetable}/solution/${solutionId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newGrid)
+            });
+        } catch (err) { console.error("Error updating manual timetable:", err); }
+    };
+
+    return (
+        <div className="overflow-x-auto pb-6 animate-in fade-in duration-500">
+            <div className="min-w-[1000px]">
+                <div className="grid grid-cols-[140px_repeat(6,1fr)] gap-4 mb-6">
+                    <div className="p-4">
+                         <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full text-center">Interactive Mode</p>
+                    </div>
+                    {days.map(day => (
+                        <div key={day} className="p-5 bg-slate-900 rounded-[1.5rem] text-center font-black text-white text-xs tracking-widest uppercase shadow-xl shadow-slate-900/10">{day}</div>
+                    ))}
+                </div>
+                
+                {Array.from({length: periodsCount}).map((_, pIdx) => (
+                    <div key={pIdx} className="grid grid-cols-[140px_repeat(6,1fr)] gap-4 mb-4">
+                        <div className="p-5 bg-slate-50 rounded-[1.5rem] flex flex-col items-center justify-center border border-slate-100 text-center shadow-sm font-black text-xs text-slate-600">
+                            Period {pIdx + 1}
+                        </div>
+                        {days.map(day => {
+                            const slot = schedule[day][pIdx];
+                            const isSpecial = slot?.teacher_id === -1;
+                            const isSelfStudy = slot?.subject === 'Self Study' || slot?.subject?.includes('Free');
+                            
+                            return (
+                                <div 
+                                    key={day} 
+                                    draggable={!!slot}
+                                    onDragStart={() => handleDragStart(day, pIdx, slot)}
+                                    onDragOver={(e) => e.preventDefault()}
+                                    onDrop={() => handleDrop(day, pIdx)}
+                                    className={`p-5 rounded-[1.8rem] border flex flex-col justify-center items-center text-center transition-all cursor-move ${
+                                        isSpecial && !isSelfStudy ? 'bg-indigo-50 border-indigo-100' : isSelfStudy ? 'bg-amber-50/10 border-amber-100/30' : 'bg-white border-slate-100 hover:shadow-lg hover:border-[#0BC48B]/30'
+                                    } ${dragged?.day === day && dragged?.pIdx === pIdx ? 'opacity-30 scale-95' : ''}`}
+                                >
+                                    {slot ? (
+                                        <>
+                                            <span className={`font-black text-xs tracking-tight ${isSpecial && !isSelfStudy ? 'text-indigo-600' : isSelfStudy ? 'text-amber-600' : 'text-slate-800'}`}>{slot.subject}</span>
+                                            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-2">{slot.teacher_name === 'N/A' || !slot.teacher_name ? 'Auto-Filled' : slot.teacher_name}</span>
+                                        </>
+                                    ) : (
+                                        <div className="group relative w-full h-full flex items-center justify-center">
+                                            <span className="text-[10px] font-bold text-slate-200 group-hover:hidden">Empty</span>
+                                            <div className="hidden group-hover:flex items-center gap-1 scale-90">
+                                                <select 
+                                                    onChange={(e) => {
+                                                        const w = classWorkloads.find(x => x.subject === e.target.value);
+                                                        if (w) handleManualSubject(day, pIdx, w);
+                                                    }}
+                                                    className="bg-slate-50 text-[9px] font-black uppercase border border-slate-100 rounded-lg px-2 py-1 outline-none"
+                                                >
+                                                    <option value="">Fill...</option>
+                                                    {classWorkloads.map((w, idx) => <option key={idx} value={w.subject}>{w.subject}</option>)}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                ))}
+            </div>
+            <div className="mt-6 flex items-center gap-2 px-6">
+                <div className="w-2 h-2 bg-[#0BC48B] rounded-full animate-pulse" />
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Drag and drop subjects to reorder. Changes save automatically.</p>
+            </div>
+        </div>
+    );
+};
+
+const TeacherTimetableList = ({ teacherName, fullSchedule }) => {
+    if (!teacherName || !fullSchedule || !fullSchedule[teacherName]) {
+        return (
+            <div className="py-20 text-center bg-slate-50 rounded-[3rem] border border-dashed border-slate-200">
+                <p className="text-sm font-bold text-slate-400">Please select a teacher to view their personal schedule.</p>
+            </div>
+        );
+    }
+
+    const sched = fullSchedule[teacherName];
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in slide-in-from-bottom-4">
+            {days.map(day => (
+                <div key={day} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+                    <h4 className="font-black text-slate-900 uppercase tracking-widest text-[11px] mb-6 border-b border-slate-50 pb-4 flex justify-between">
+                        {day} 
+                        <span className="text-slate-400">{sched[day]?.length || 0} Periods</span>
+                    </h4>
+                    <div className="space-y-4">
+                        {sched[day] ? sched[day].sort((a,b) => a.p - b.p).map((slot, i) => (
+                            <div key={i} className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl group hover:bg-[#0BC48B]/5 transition-all">
+                                <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center font-black text-xs text-slate-400 group-hover:text-[#0BC48B] group-hover:border-[#0BC48B]/20 shadow-sm">
+                                    P{slot.p}
+                                </div>
+                                <div>
+                                    <h5 className="font-black text-slate-800 text-sm">{slot.sub}</h5>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Class {slot.cls}</p>
+                                </div>
+                            </div>
+                        )) : (
+                            <p className="text-[10px] font-bold text-slate-300 italic">No assigned classes</p>
+                        )}
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+};
+
 
 const MappingCard = ({ cls, sub, tr, n }) => (
     <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between group hover:border-[#0BC48B] hover:shadow-md transition-all">

@@ -59,7 +59,7 @@ def get_teacher(db: Session, teacher_id: int):
     return db.query(Teacher).filter(Teacher.id == teacher_id).first()
 
 def get_or_create_section(db: Session, name: str):
-    section = db.query(SchoolSection).filter(SchoolSection.name == name).first()
+    section = db.query(SchoolSection).filter(func.lower(SchoolSection.name) == name.lower()).first()
     if not section:
         section = SchoolSection(name=name)
         db.add(section)
@@ -104,8 +104,9 @@ def get_sections(db: Session):
     return db.query(SchoolSection).all()
 
 def get_classes_by_section(db: Session, section_name: str):
-    section = db.query(SchoolSection).filter(SchoolSection.name == section_name).first()
-    if not section: return []
+    section = db.query(SchoolSection).filter(func.lower(SchoolSection.name) == section_name.lower()).first()
+    if not section:
+        return []
     return section.classes
 
 def create_class(db: Session, data: SchoolClassCreate):
@@ -130,8 +131,9 @@ def create_class(db: Session, data: SchoolClassCreate):
     return new_class
 
 def get_teachers_by_section(db: Session, section_name: str):
-    section = db.query(SchoolSection).filter(SchoolSection.name == section_name).first()
-    if not section: return []
+    section = db.query(SchoolSection).filter(func.lower(SchoolSection.name) == section_name.lower()).first()
+    if not section:
+        return []
     return section.teachers
 
 def delete_class(db: Session, class_id: int):

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Any
 from app.core.database import get_db
 from app.timetable import service, schemas
 
@@ -29,3 +29,11 @@ def generate_timetable(request: schemas.TimetableGenerateRequest, db: Session = 
     if result.get("status") == "error":
         raise HTTPException(status_code=400, detail=result["message"])
     return result
+
+@router.patch("/solution/{solution_id}")
+def update_manual_timetable(solution_id: int, grid_data: Any, db: Session = Depends(get_db)):
+    """Allows manual editing of a generated solution"""
+    updated = service.update_solution_grid(db, solution_id, grid_data)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Solution not found")
+    return {"status": "success", "message": "Timetable updated manually"}
