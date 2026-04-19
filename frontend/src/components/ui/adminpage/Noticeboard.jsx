@@ -14,7 +14,7 @@ export const NoticeboardModule = () => {
         attachment_url: null
     });
 
-    const API_BASE_URL = `${config.API_BASE_URL}/notices";
+    const API_BASE_URL = `${config.API_BASE_URL}/notices`;
 
     const fetchNotices = async () => {
         try {

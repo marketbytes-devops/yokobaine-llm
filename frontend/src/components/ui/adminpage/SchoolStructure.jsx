@@ -23,7 +23,7 @@ export const SchoolStructureModule = () => {
         room: ""
     });
 
-    const API_BASE = `${config.API_BASE_URL}/v1/school";
+    const API_BASE = `${config.API_BASE_URL}/v1/school`;
 
     
     const levelConfigs = {

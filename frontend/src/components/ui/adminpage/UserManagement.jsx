@@ -26,15 +26,15 @@ export const UserManagementModule = () => {
 
     const fetchData = async () => {
         try {
-            const roleRes = await fetch(`${config.API_BASE_URL}/auth/roles");
+            const roleRes = await fetch(`${config.API_BASE_URL}/auth/roles`);
             const roleData = await roleRes.json();
             setAvailableRoles(roleData);
 
-            const userRes = await fetch(`${config.API_BASE_URL}/auth/users");
+            const userRes = await fetch(`${config.API_BASE_URL}/auth/users`);
             const userData = await userRes.json();
             setUsers(userData);
 
-            const teacherRes = await fetch(`${config.API_BASE_URL}/v1/school/teachers");
+            const teacherRes = await fetch(`${config.API_BASE_URL}/v1/school/teachers`);
             const teacherData = await teacherRes.json();
             // Map backend structure for easier filtering
             setTeachers(teacherData.map(t => ({
@@ -103,7 +103,7 @@ export const UserManagementModule = () => {
 
         setLoading(true);
         try {
-            const res = await fetch(`${config.API_BASE_URL}/auth/register", {
+            const res = await fetch(`${config.API_BASE_URL}/auth/register`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

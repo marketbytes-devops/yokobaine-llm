@@ -13,7 +13,7 @@ export const RoleManagementModule = () => {
     // Fetch existing roles
     const fetchRoles = async () => {
         try {
-            const res = await fetch(`${config.API_BASE_URL}/auth/roles");
+            const res = await fetch(`${config.API_BASE_URL}/auth/roles`);
             const data = await res.json();
             if (Array.isArray(data)) {
                 setRoles(data);

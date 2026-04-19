@@ -30,9 +30,9 @@ export const TimetableBuilderModule = () => {
     const [workloads, setWorkloads] = useState([]);
     const [constraints, setConstraints] = useState([]);
 
-    const API_BASE_SCHOOL = `${config.API_BASE_URL}/v1/school";
-    const API_BASE_ACADEMICS = `${config.API_BASE_URL}/v1/academics";
-    const API_BASE_TIMETABLE = `${config.API_BASE_URL}/v1/timetable";
+    const API_BASE_SCHOOL = `${config.API_BASE_URL}/v1/school`;
+    const API_BASE_ACADEMICS = `${config.API_BASE_URL}/v1/academics`;
+    const API_BASE_TIMETABLE = `${config.API_BASE_URL}/v1/timetable`;
 
     useEffect(() => {
         fetchConfigs();

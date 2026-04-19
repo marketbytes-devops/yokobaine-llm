@@ -26,7 +26,7 @@ export default function ForgotPassword() {
     setMessage("");
 
     try {
-      const response = await fetch(`${config.API_BASE_URL}/auth/forgot-password", {
+      const response = await fetch(`${config.API_BASE_URL}/auth/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
@@ -70,7 +70,7 @@ export default function ForgotPassword() {
 
     try {
       const OTPString = otp.join("");
-      const response = await fetch(`${config.API_BASE_URL}/auth/reset-password", {
+      const response = await fetch(`${config.API_BASE_URL}/auth/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 

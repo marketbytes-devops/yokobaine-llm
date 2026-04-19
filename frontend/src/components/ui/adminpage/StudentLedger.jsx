@@ -22,8 +22,8 @@ export const StudentLedgerModule = () => {
     const [newSectionValue, setNewSectionValue] = useState("");
     const itemsPerPage = 25;
 
-    const API_BASE_URL = `${config.API_BASE_URL}/students";
-    const SCHOOL_API_URL = `${config.API_BASE_URL}/v1/school";
+    const API_BASE_URL = `${config.API_BASE_URL}/students`;
+    const SCHOOL_API_URL = `${config.API_BASE_URL}/v1/school`;
 
     const [selectedLevel, setSelectedLevel] = useState("LP");
 

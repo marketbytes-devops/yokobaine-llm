@@ -17,8 +17,8 @@ export const SubjectManagementModule = ({ onBack }) => {
         subjectList: [""]
     });
 
-    const API_ACADEMICS = `${config.API_BASE_URL}/v1/academics";
-    const API_SCHOOL = `${config.API_BASE_URL}/v1/school";
+    const API_ACADEMICS = `${config.API_BASE_URL}/v1/academics`;
+    const API_SCHOOL = `${config.API_BASE_URL}/v1/school`;
 
     const levelConfigs = {
         "KG": ["LKG", "UKG"],
