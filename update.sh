@@ -10,6 +10,10 @@ echo "Pulling latest changes from GitHub..."
 git pull
 
 # 2. Rebuild and restart Docker containers
+echo "Stopping and removing existing containers..."
+docker compose down || true
+docker rm -f yokobaine_backend yokobaine_frontend 2>/dev/null || true
+
 echo "Rebuilding and restarting Docker containers..."
 docker compose up -d --build
 
