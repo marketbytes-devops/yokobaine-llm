@@ -33,7 +33,7 @@ export const RoleManagementModule = () => {
         setMessage({ type: "", text: "" });
 
         try {
-            const res = await fetch("http://localhost:8000/api/auth/roles", {
+            const res = await fetch(`${config.API_BASE_URL}/auth/roles`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -62,7 +62,7 @@ export const RoleManagementModule = () => {
         if (!window.confirm("Are you sure you want to delete this role?")) return;
         
         try {
-            const res = await fetch(`http://localhost:8000/api/auth/roles/${roleId}`, {
+            const res = await fetch(`${config.API_BASE_URL}/auth/roles/${roleId}`, {
                 method: "DELETE"
             });
             if (res.ok) {
