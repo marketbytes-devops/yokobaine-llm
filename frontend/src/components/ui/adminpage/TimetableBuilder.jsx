@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CalendarDays, Clock, BookOpen, Settings, ChevronRight, ChevronLeft, Save, Play, CheckCircle2, AlertOctagon, ChevronDown, Plus, Trash2 } from 'lucide-react';
+import config from "@/config";
 
 export const TimetableBuilderModule = () => {
     const [step, setStep] = useState(1);
@@ -29,9 +30,9 @@ export const TimetableBuilderModule = () => {
     const [workloads, setWorkloads] = useState([]);
     const [constraints, setConstraints] = useState([]);
 
-    const API_BASE_SCHOOL = "http://127.0.0.1:8000/api/v1/school";
-    const API_BASE_ACADEMICS = "http://127.0.0.1:8000/api/v1/academics";
-    const API_BASE_TIMETABLE = "http://127.0.0.1:8000/api/v1/timetable";
+    const API_BASE_SCHOOL = `${config.API_BASE_URL}/v1/school";
+    const API_BASE_ACADEMICS = `${config.API_BASE_URL}/v1/academics";
+    const API_BASE_TIMETABLE = `${config.API_BASE_URL}/v1/timetable";
 
     useEffect(() => {
         fetchConfigs();

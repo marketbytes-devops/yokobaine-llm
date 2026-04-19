@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Plus, BookText, ChevronDown, Edit, Trash2, CheckCircle2, ArrowLeft, XCircle } from 'lucide-react';
+import config from "@/config";
 
 export const SubjectManagementModule = ({ onBack }) => {
     const [classSubjects, setClassSubjects] = useState([]);
@@ -16,8 +17,8 @@ export const SubjectManagementModule = ({ onBack }) => {
         subjectList: [""]
     });
 
-    const API_ACADEMICS = "http://127.0.0.1:8000/api/v1/academics";
-    const API_SCHOOL = "http://127.0.0.1:8000/api/v1/school";
+    const API_ACADEMICS = `${config.API_BASE_URL}/v1/academics";
+    const API_SCHOOL = `${config.API_BASE_URL}/v1/school";
 
     const levelConfigs = {
         "KG": ["LKG", "UKG"],

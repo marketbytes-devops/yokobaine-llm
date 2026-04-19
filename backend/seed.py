@@ -11,8 +11,8 @@ from app.authapp import models
 def seed_admin():
     db = database.SessionLocal()
     
-    ADMIN_EMAIL = "nithyapradeep047@gmail.com"
-    ADMIN_PASSWORD = "nithya123"
+    ADMIN_EMAIL = "yokobaine@gmail.com"
+    ADMIN_PASSWORD = "Yokobaineadmin@2026"
     
     # 1. Ensure the SuperAdmin role exists in the 'roles' table
     sa_role = db.query(models.Role).filter(models.Role.name == "SuperAdmin").first()

@@ -1,0 +1,37 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: yokobaine_backend
+    restart: always
+    environment:
+      - DB_USER=${DB_USER:-root}
+      - DB_PASSWORD=${DB_PASSWORD:-marketbytesshared@9633}
+      - DB_HOST=shared-mysql
+      - DB_NAME=${DB_NAME:-yokobainellmdb}
+      - DB_PORT=${DB_PORT:-3306}
+      - SECRET_KEY=${SECRET_KEY}
+      - ALGORITHM=${ALGORITHM:-HS256}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
+    ports:
+      - "7401:8000"
+    networks:
+      - shared-db-network
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: yokobaine_frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "7400:80"
+    networks:
+      - shared-db-network
+
+networks:
+  shared-db-network:
+    external: true

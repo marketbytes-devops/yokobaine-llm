@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Save, UserPlus, FileText, Search, GraduationCap, Users, ChevronRight, ArrowLeft, ChevronLeft, Eye, Edit, User, Mail, Phone, Calendar, MapPin, Droplet, Hash, LogOut, Plus, Trash2 } from 'lucide-react';
+import config from "@/config";
 
 export const StudentLedgerModule = () => {
     const [activeTab, setActiveTab] = useState('add');
@@ -21,8 +22,8 @@ export const StudentLedgerModule = () => {
     const [newSectionValue, setNewSectionValue] = useState("");
     const itemsPerPage = 25;
 
-    const API_BASE_URL = "http://127.0.0.1:8000/api/students";
-    const SCHOOL_API_URL = "http://127.0.0.1:8000/api/v1/school";
+    const API_BASE_URL = `${config.API_BASE_URL}/students";
+    const SCHOOL_API_URL = `${config.API_BASE_URL}/v1/school";
 
     const [selectedLevel, setSelectedLevel] = useState("LP");
 

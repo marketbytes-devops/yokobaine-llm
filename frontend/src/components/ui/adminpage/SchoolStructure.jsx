@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Plus, BookOpen, Users, MapPin, ChevronDown, Edit, Trash2, CheckCircle2, BookMarked } from 'lucide-react';
 import { SubjectManagementModule } from './SubjectManagement';
+import config from "@/config";
 
 export const SchoolStructureModule = () => {
     const [view, setView] = useState("Classroom"); 
@@ -22,7 +23,7 @@ export const SchoolStructureModule = () => {
         room: ""
     });
 
-    const API_BASE = "http://127.0.0.1:8000/api/v1/school";
+    const API_BASE = `${config.API_BASE_URL}/v1/school";
 
     
     const levelConfigs = {

@@ -8,10 +8,11 @@ class Settings:
     ALGORITHM = os.getenv("ALGORITHM", "HS256")
     ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 1440))
     
-    MYSQL_USER = os.getenv("MYSQL_USER")
-    MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD")
-    MYSQL_SERVER = os.getenv("MYSQL_SERVER")
-    MYSQL_DB = os.getenv("MYSQL_DB")
+    DB_USER = os.getenv("DB_USER", "root")
+    DB_PASSWORD = os.getenv("DB_PASSWORD", "marketbytesshared@9633")
+    DB_HOST = os.getenv("DB_HOST", "shared-mysql")
+    DB_NAME = os.getenv("DB_NAME", "yokobainellmdb")
+    DB_PORT = os.getenv("DB_PORT", "3306")
     
     SMTP_SERVER = os.getenv("SMTP_SERVER")
     SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
