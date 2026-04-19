@@ -64,7 +64,7 @@ const AdminDashboard = () => {
                         </div>
                         <div className="flex items-center gap-4 pl-6 border-l border-slate-200">
                             <div className="text-right">
-                                <p className="text-sm font-black text-slate-800 tracking-tight leading-none mb-1">Nithya Pradeep</p>
+                                <p className="text-sm font-black text-slate-800 tracking-tight leading-none mb-1">Admin</p>
                                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Super Admin Profile</p>
                             </div>
                             <div className="w-11 h-11 rounded-2xl bg-slate-100 border-2 border-white shadow-xl overflow-hidden ring-4 ring-slate-50">
