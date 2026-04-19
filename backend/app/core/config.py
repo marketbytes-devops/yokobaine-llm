@@ -14,6 +14,8 @@ class Settings:
     DB_NAME = os.getenv("DB_NAME", "yokobainellmdb")
     DB_PORT = os.getenv("DB_PORT", "3306")
     
+    FRONTEND_URL = os.getenv("FRONTEND_URL", "http://app.yokobaine.com")
+    
     SMTP_SERVER = os.getenv("SMTP_SERVER")
     SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
     SMTP_USERNAME = os.getenv("SMTP_USERNAME")
