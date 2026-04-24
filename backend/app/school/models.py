@@ -75,6 +75,9 @@ class SchoolClass(Base):
     stream             = Column(String(100), nullable=True) 
     room_number        = Column(String(50), nullable=True)
     capacity           = Column(Integer, default=40)
+    start_time         = Column(String(10), nullable=True)
+    end_time           = Column(String(10), nullable=True)
+    periods_per_day    = Column(Integer, nullable=True)
     
     # Foreign Keys
     section_id       = Column(Integer, ForeignKey("school_sections.id"), nullable=False)

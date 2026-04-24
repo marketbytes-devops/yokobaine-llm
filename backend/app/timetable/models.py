@@ -12,6 +12,8 @@ class TimetableConfig(Base):
     days         = Column(JSON, nullable=False)      # List of days: ["Mon", "Tue"...]
     periods      = Column(Integer, default=8)
     duration     = Column(Integer, default=45)
+    start_time   = Column(String(20), nullable=True, default="08:30 AM")
+    end_time     = Column(String(20), nullable=True, default="03:30 PM")
     breaks       = Column(JSON, default=[])         # List of break objects
     drill_periods = Column(JSON, default=[])        # List of drill period objects
     fixed_slots   = Column(JSON, default=[])        # New: Assembly, Lunch, etc.
@@ -45,3 +47,23 @@ class TimetableSolution(Base):
     grid_data  = Column(JSON, nullable=False) # Full 2D array of the schedule
     is_active  = Column(Boolean, default=True)
     created_at = Column(DateTime, server_default=func.now())
+
+class GlobalTimingSettings(Base):
+    __tablename__ = "global_timing_settings"
+    id = Column(Integer, primary_key=True, index=True)
+    period_duration_minutes = Column(Integer)
+    lunch_after_period = Column(Integer)
+    lunch_duration_minutes = Column(Integer)
+    short_break_after_period = Column(Integer)
+    short_break_duration_minutes = Column(Integer)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+class PeriodTimeSlot(Base):
+    __tablename__ = "period_time_slots"
+    id = Column(Integer, primary_key=True, index=True)
+    class_name = Column(String(100), nullable=False)
+    period_number = Column(Integer)
+    start_time = Column(String(10), nullable=False)
+    end_time = Column(String(10), nullable=False)
+    is_break = Column(Boolean, default=False)
+    break_name = Column(String(100), nullable=True)

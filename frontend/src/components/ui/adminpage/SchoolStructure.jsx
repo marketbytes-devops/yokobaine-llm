@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Plus, BookOpen, Users, MapPin, ChevronDown, Edit, Trash2, CheckCircle2, BookMarked } from 'lucide-react';
 import { SubjectManagementModule } from './SubjectManagement';
+import config from "@/config";
+import { SCHOOL_LEVELS } from "@/constants";
 
 export const SchoolStructureModule = () => {
     const [view, setView] = useState("Classroom"); 
@@ -22,7 +24,7 @@ export const SchoolStructureModule = () => {
         room: ""
     });
 
-    const API_BASE = "http://127.0.0.1:8000/api/v1/school";
+    const API_BASE = `${config.API_BASE_URL}/v1/school`;
 
     
     const levelConfigs = {
@@ -53,18 +55,11 @@ export const SchoolStructureModule = () => {
         }
     };
 
-    // Map to translate SchoolStructure segments to TeacherManagement categories
-    const segmentMap = {
-        "KG": "Kindergarten",
-        "LP": "LP",
-        "UP": "UP",
-        "HIGH SCHOOL": "High School",
-        "HIGHERSECONDARY": "Higher Secondary"
-    };
+    // Use centralized constant for mapping
+    const segmentMap = SCHOOL_LEVELS;
 
-    // Derived teachers list based on selectedLevel
     const filteredTeachersForLevel = teachers.filter(t => 
-        t.sections && t.sections.some(s => s.name === segmentMap[selectedLevel])
+        t.sections && t.sections.some(s => s.name === selectedLevel)
     );
 
     useEffect(() => {

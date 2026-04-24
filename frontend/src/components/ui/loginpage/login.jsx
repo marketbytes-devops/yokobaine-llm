@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import config from "@/config";
 
 import bgImage from "@/assets/images/loginpage/loginbg.jpg";
 import logoImage from "@/assets/images/loginpage/Vector.jpg";
@@ -22,7 +23,7 @@ export default function LoginScreen() {
     setError("");
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/auth/login", {
+      const response = await fetch(`${config.API_BASE_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({

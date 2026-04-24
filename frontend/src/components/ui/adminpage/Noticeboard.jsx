@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Megaphone, Send, Paperclip, CheckSquare, Trash2, CalendarDays } from 'lucide-react';
+import config from "@/config";
 
 export const NoticeboardModule = () => {
     const fileInputRef = useRef(null);
@@ -13,7 +14,7 @@ export const NoticeboardModule = () => {
         attachment_url: null
     });
 
-    const API_BASE_URL = "http://127.0.0.1:8000/api/notices";
+    const API_BASE_URL = `${config.API_BASE_URL}/notices`;
 
     const fetchNotices = async () => {
         try {

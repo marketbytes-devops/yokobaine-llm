@@ -14,6 +14,8 @@ from app.students import routes as student_routes
 app = FastAPI(title="Yokobine LLM API")
 
 
+from app.core.config import settings
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

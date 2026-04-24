@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import config from "@/config";
 
 import bgImage from "@/assets/images/loginpage/loginbg.jpg";
 import logoImage from "@/assets/images/loginpage/Vector.jpg";
@@ -46,7 +47,7 @@ export default function ResetPassword() {
     }
 
     try {
-      const response = await fetch("http://localhost:8000/api/auth/reset-password", {
+      const response = await fetch(`${config.API_BASE_URL}/auth/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 

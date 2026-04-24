@@ -1,16 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Save, UserPlus, GraduationCap, BookOpen, Layers, CheckCircle2, Search, Pencil, X, ChevronDown, Trash2 } from 'lucide-react';
+import config from "@/config";
+import { SCHOOL_LEVELS } from "@/constants";
 
-const API_BASE_URL = "http://127.0.0.1:8000/api/v1/school";
-const api_academics_url = "http://127.0.0.1:8000/api/v1/academics";
+const API_BASE_URL = `${config.API_BASE_URL}/v1/school`;
+const api_academics_url = `${config.API_BASE_URL}/v1/academics`;
 
-const categoriesMap = {
-    "KG": "Kindergarten", 
-    "LP": "LP", 
-    "UP": "UP", 
-    "HIGH SCHOOL": "High School", 
-    "HIGHERSECONDARY": "Higher Secondary"
-};
+const categoriesMap = SCHOOL_LEVELS;
 
 const categories = Object.keys(categoriesMap);
 

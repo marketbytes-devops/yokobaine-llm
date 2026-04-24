@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { UploadCloud, Save, ChevronDown, CheckCircle2, Building2, User, Mail, Phone, Calendar, Info, School } from "lucide-react";
+import config from "@/config";
 
 export const SchoolProfileModule = () => {
     const [subTab, setSubTab] = useState("Settings"); // "Settings" or "School's Profile"
@@ -20,7 +21,7 @@ export const SchoolProfileModule = () => {
     // Dedicated state for the preview tab so that formData can be cleared
     const [savedViewData, setSavedViewData] = useState(null);
 
-    const API_BASE = "http://127.0.0.1:8000/api/v1/school";
+    const API_BASE = `${config.API_BASE_URL}/v1/school`;
 
     useEffect(() => {
         fetchData();

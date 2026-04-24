@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { Shield, Plus, List, CheckCircle, XCircle, Trash2 } from "lucide-react";
+import config from "@/config";
 
 export const RoleManagementModule = () => {
     const [roles, setRoles] = useState([]);
@@ -12,7 +13,7 @@ export const RoleManagementModule = () => {
     // Fetch existing roles
     const fetchRoles = async () => {
         try {
-            const res = await fetch("http://127.0.0.1:8000/api/auth/roles");
+            const res = await fetch(`${config.API_BASE_URL}/auth/roles`);
             const data = await res.json();
             if (Array.isArray(data)) {
                 setRoles(data);
@@ -32,7 +33,7 @@ export const RoleManagementModule = () => {
         setMessage({ type: "", text: "" });
 
         try {
-            const res = await fetch("http://localhost:8000/api/auth/roles", {
+            const res = await fetch(`${config.API_BASE_URL}/auth/roles`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -61,7 +62,7 @@ export const RoleManagementModule = () => {
         if (!window.confirm("Are you sure you want to delete this role?")) return;
         
         try {
-            const res = await fetch(`http://localhost:8000/api/auth/roles/${roleId}`, {
+            const res = await fetch(`${config.API_BASE_URL}/auth/roles/${roleId}`, {
                 method: "DELETE"
             });
             if (res.ok) {

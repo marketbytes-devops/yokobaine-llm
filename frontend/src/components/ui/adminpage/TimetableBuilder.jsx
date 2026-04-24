@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CalendarDays, Clock, BookOpen, Settings, ChevronRight, ChevronLeft, Save, Play, CheckCircle2, AlertOctagon, ChevronDown, Plus, Trash2 } from 'lucide-react';
+import config from "@/config";
 
 export const TimetableBuilderModule = () => {
     const [step, setStep] = useState(1);
@@ -11,6 +12,8 @@ export const TimetableBuilderModule = () => {
         days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
         periods: 8,
         duration: 45,
+        startTime: "08:30 AM",
+        endTime: "03:30 PM",
         breaks: [
             { id: 1, start: "10:30 AM", end: "10:45 AM" },
             { id: 2, start: "01:00 PM", end: "01:45 PM" }
@@ -28,14 +31,40 @@ export const TimetableBuilderModule = () => {
 
     const [workloads, setWorkloads] = useState([]);
     const [constraints, setConstraints] = useState([]);
+    const [editingConfigId, setEditingConfigId] = useState(null);
 
-    const API_BASE_SCHOOL = "http://127.0.0.1:8000/api/v1/school";
-    const API_BASE_ACADEMICS = "http://127.0.0.1:8000/api/v1/academics";
-    const API_BASE_TIMETABLE = "http://127.0.0.1:8000/api/v1/timetable";
+    const API_BASE_SCHOOL = `${config.API_BASE_URL}/v1/school`;
+    const API_BASE_ACADEMICS = `${config.API_BASE_URL}/v1/academics`;
+    const API_BASE_TIMETABLE = `${config.API_BASE_URL}/v1/timetable`;
 
     useEffect(() => {
         fetchConfigs();
     }, []);
+
+    // Check for existing config when level/stream changes
+    useEffect(() => {
+        if (!globalTime.level || subTab !== 'config') return;
+        
+        const existing = savedTimes.find(c => 
+            c.level === globalTime.level && 
+            (globalTime.level === "HIGHERSECONDARY" ? c.stream === globalTime.stream : true)
+        );
+
+        if (existing) {
+            setEditingConfigId(existing.id);
+            // Auto-fill form with existing data
+            setGlobalTime({
+                ...existing,
+                startTime: existing.start_time || "08:30 AM",
+                endTime: existing.end_time || "03:30 PM",
+                drillPeriods: existing.drill_periods || [],
+                fixed_slots: existing.fixed_slots || []
+            });
+        } else {
+            setEditingConfigId(null);
+            // Optional: reset to defaults if needed, but usually we leave current values
+        }
+    }, [globalTime.level, globalTime.stream, savedTimes, subTab]);
 
     const fetchConfigs = async () => {
         try {
@@ -44,6 +73,8 @@ export const TimetableBuilderModule = () => {
             // Map backend drill_periods to frontend drillPeriods
             const adapted = data.map(t => ({
                 ...t,
+                startTime: t.start_time || "08:30 AM",
+                endTime: t.end_time || "03:30 PM",
                 drillPeriods: t.drill_periods || [],
                 breaksCount: t.breaks ? t.breaks.length : 0
             }));
@@ -60,8 +91,21 @@ export const TimetableBuilderModule = () => {
         { id: 4, title: 'Output Grid', subtitle: 'Step D', icon: <CalendarDays size={16} /> }
     ];
 
-    const handleDeleteSaved = (id) => {
-        setSavedTimes(savedTimes.filter(t => t.id !== id));
+    const handleDeleteSaved = async (id) => {
+        if (!window.confirm("Are you sure you want to delete this configuration? This cannot be undone.")) return;
+        
+        try {
+            const res = await fetch(`${API_BASE_TIMETABLE}/config/${id}`, {
+                method: 'DELETE'
+            });
+            if (res.ok) {
+                await fetchConfigs();
+            } else {
+                alert("Failed to delete configuration.");
+            }
+        } catch (err) {
+            console.error("Error deleting configuration:", err);
+        }
     };
 
     const handleSaveConfig = async () => {
@@ -71,23 +115,31 @@ export const TimetableBuilderModule = () => {
             days: globalTime.days,
             periods: parseInt(globalTime.periods),
             duration: parseInt(globalTime.duration),
+            start_time: globalTime.startTime,
+            end_time: globalTime.endTime,
             breaks: globalTime.breaks,
-            drill_periods: globalTime.drillPeriods || []
+            drill_periods: globalTime.drillPeriods || [],
+            fixed_slots: globalTime.fixed_slots || []
         };
 
         try {
-            const method = globalTime.id ? 'POST' : 'POST'; // Backend currently only has POST /config (create)
-            // Note: In a full implementation we'd have PUT /config/{id}
+            const url = editingConfigId 
+                ? `${API_BASE_TIMETABLE}/config/${editingConfigId}` 
+                : `${API_BASE_TIMETABLE}/config`;
+            const method = editingConfigId ? 'PUT' : 'POST';
             
-            const res = await fetch(`${API_BASE_TIMETABLE}/config`, {
-                method: 'POST',
+            const res = await fetch(url, {
+                method: method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
 
             if (res.ok) {
+                alert(editingConfigId ? "Configuration updated successfully!" : "Configuration saved successfully!");
                 await fetchConfigs();
-                setSubTab('saved');
+                setEditingConfigId(null);
+                handleNewConfig(); // Reset form to defaults
+                setSubTab('saved'); 
             }
         } catch (err) {
             console.error("Error saving configuration:", err);
@@ -101,12 +153,15 @@ export const TimetableBuilderModule = () => {
             days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
             periods: 8,
             duration: 45,
+            startTime: "08:30 AM",
+            endTime: "03:30 PM",
             breaks: [
                 { id: 1, start: "10:30 AM", end: "10:45 AM" },
                 { id: 2, start: "01:00 PM", end: "01:45 PM" }
             ],
             drillPeriods: []
         });
+        setEditingConfigId(null);
         setSubTab('config');
     };
 
@@ -149,6 +204,7 @@ export const TimetableBuilderModule = () => {
                             setData={setGlobalTime} 
                             onNext={() => setStep(2)} 
                             onSave={handleSaveConfig}
+                            isExisting={!!editingConfigId}
                         />
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in slide-in-from-left-4 duration-500">
@@ -213,7 +269,7 @@ export const TimetableBuilderModule = () => {
     );
 };
 
-const StepAGlobalTime = ({ data, setData, onNext, onSave }) => {
+const StepAGlobalTime = ({ data, setData, onNext, onSave, isExisting }) => {
     const toggleDay = (day) => {
         if (data.days.includes(day)) {
             setData({ ...data, days: data.days.filter(d => d !== day) });
@@ -321,6 +377,11 @@ const StepAGlobalTime = ({ data, setData, onNext, onSave }) => {
                         <InputGroup label="Period Duration (mins)" type="number" value={data.duration} onChange={(e) => setData({ ...data, duration: e.target.value })} />
                     </div>
 
+                    <div className="grid grid-cols-2 gap-6 pt-4 border-t border-slate-50">
+                        <TimeSelectGroup label="School Opening Time" value={data.startTime} onChange={(val) => setData({ ...data, startTime: val })} />
+                        <TimeSelectGroup label="School Closing Time" value={data.endTime} onChange={(val) => setData({ ...data, endTime: val })} />
+                    </div>
+
                     {/* Fixed Events (Assembly, Lunch, etc) Configuration */}
                     <div className="pt-6 border-t border-slate-50 animate-in fade-in">
                         <div className="flex items-center justify-between mb-4">
@@ -400,8 +461,8 @@ const StepAGlobalTime = ({ data, setData, onNext, onSave }) => {
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Saved configurations can be reused for parallel grade sections</p>
                 </div>
                 <div className="flex items-center gap-4 w-full sm:w-auto">
-                    <button onClick={onSave} className="flex-1 sm:flex-none border-2 border-slate-900 text-slate-900 px-10 py-4 rounded-[1.8rem] font-black text-[11px] uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all">
-                        Save Configuration
+                    <button onClick={onSave} className={`flex-1 sm:flex-none border-2 px-10 py-4 rounded-[1.8rem] font-black text-[11px] uppercase tracking-widest transition-all ${isExisting ? 'border-[#0BC48B] text-[#0BC48B] hover:bg-[#0BC48B] hover:text-white' : 'border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white'}`}>
+                        {isExisting ? 'Update Configuration' : 'Save Configuration'}
                     </button>
                     <button onClick={onNext} className="flex-1 sm:flex-none bg-[#0BC48B] text-white px-10 py-5 rounded-[1.8rem] font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl shadow-[#0BC48B]/20 hover:-translate-y-1 active:scale-95 transition-all">
                         Continue to Workload <ChevronRight size={18} />
@@ -413,8 +474,8 @@ const StepAGlobalTime = ({ data, setData, onNext, onSave }) => {
 };
 
  const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, apiAcademics, apiTimetable, currentConfig }) => {
-    const [selectedLevel, setSelectedLevel] = useState('');
-    const [selectedStream, setSelectedStream] = useState('');
+    const [selectedLevel, setSelectedLevel] = useState(currentConfig?.level || '');
+    const [selectedStream, setSelectedStream] = useState(currentConfig?.stream || '');
     const [selectedClassId, setSelectedClassId] = useState('');
     const [selectedSubjectId, setSelectedSubjectId] = useState('');
     const [selectedTeacherId, setSelectedTeacherId] = useState('');
@@ -1031,9 +1092,10 @@ const StepDOutputGrid = ({ onPrev, level, stream, apiTimetable, apiSchool, workl
 
     const downloadCSV = () => {
         if (!timetableData || !selectedClass) return;
-        const schedule = timetableData[selectedClass];
-        if (!schedule) return;
+        const solution = timetableData[selectedClass];
+        if (!solution || !solution.grid) return;
 
+        const schedule = solution.grid;
         const days = Object.keys(schedule);
         const periodsCount = schedule[days[0]].length;
         

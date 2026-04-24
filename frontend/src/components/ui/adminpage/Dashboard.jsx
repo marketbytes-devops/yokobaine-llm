@@ -3,7 +3,7 @@ import { Wallet, TrendingDown, Users, MoreHorizontal, Grid } from "lucide-react"
 
 export const DashboardModule = () => {
     const [greeting, setGreeting] = React.useState("");
-    const adminName = "Nithya Pradeep";
+    const adminName = "Admin";
 
     React.useEffect(() => {
         const updateGreeting = () => {

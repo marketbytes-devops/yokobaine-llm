@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Save, UserPlus, Shield, Mail, Phone, Lock, ChevronDown, CheckCircle2, XCircle } from 'lucide-react';
+import config from "@/config";
 
 export const UserManagementModule = () => {
     const [users, setUsers] = useState([]);
@@ -25,15 +26,15 @@ export const UserManagementModule = () => {
 
     const fetchData = async () => {
         try {
-            const roleRes = await fetch("http://127.0.0.1:8000/api/auth/roles");
+            const roleRes = await fetch(`${config.API_BASE_URL}/auth/roles`);
             const roleData = await roleRes.json();
             setAvailableRoles(roleData);
 
-            const userRes = await fetch("http://127.0.0.1:8000/api/auth/users");
+            const userRes = await fetch(`${config.API_BASE_URL}/auth/users`);
             const userData = await userRes.json();
             setUsers(userData);
 
-            const teacherRes = await fetch("http://127.0.0.1:8000/api/v1/school/teachers");
+            const teacherRes = await fetch(`${config.API_BASE_URL}/v1/school/teachers`);
             const teacherData = await teacherRes.json();
             // Map backend structure for easier filtering
             setTeachers(teacherData.map(t => ({
@@ -102,7 +103,7 @@ export const UserManagementModule = () => {
 
         setLoading(true);
         try {
-            const res = await fetch("http://127.0.0.1:8000/api/auth/register", {
+            const res = await fetch(`${config.API_BASE_URL}/auth/register`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
