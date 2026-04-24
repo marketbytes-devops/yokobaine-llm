@@ -1,5 +1,5 @@
 const config = {
-  API_BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'https://appbackend.yokobaine.com/api',
+  API_BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api',
 };
 
 export default config;

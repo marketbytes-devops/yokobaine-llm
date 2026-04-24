@@ -15,6 +15,24 @@ def create_config(db: Session, data: schemas.TimetableConfigCreate):
 def get_configs(db: Session):
     return db.query(models.TimetableConfig).order_by(models.TimetableConfig.created_at.desc()).all()
 
+def update_config(db: Session, config_id: int, data: schemas.TimetableConfigCreate):
+    db_config = db.query(models.TimetableConfig).filter(models.TimetableConfig.id == config_id).first()
+    if not db_config:
+        return None
+    for key, value in data.model_dump().items():
+        setattr(db_config, key, value)
+    db.commit()
+    db.refresh(db_config)
+    return db_config
+
+def delete_config(db: Session, config_id: int):
+    db_config = db.query(models.TimetableConfig).filter(models.TimetableConfig.id == config_id).first()
+    if db_config:
+        db.delete(db_config)
+        db.commit()
+        return True
+    return False
+
 def create_workload(db: Session, data: schemas.WorkloadCreate):
     db_workload = models.ClassWorkload(**data.model_dump())
     db.add(db_workload)

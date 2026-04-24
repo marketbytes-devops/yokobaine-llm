@@ -39,7 +39,7 @@ def seed_admin():
         print(f"Creating new admin user: {ADMIN_EMAIL}")
         new_admin = models.User(
             email=ADMIN_EMAIL,
-            username="SchoolAdmin",
+            username="YokobaineAdmin",
             hashed_password=hashed_password,
             role_id=sa_role.id,
             is_active=True

@@ -14,6 +14,17 @@ def save_config(data: schemas.TimetableConfigCreate, db: Session = Depends(get_d
 def list_configs(db: Session = Depends(get_db)):
     return service.get_configs(db)
 
+@router.put("/config/{config_id}", response_model=schemas.TimetableConfigResponse)
+def update_config(config_id: int, data: schemas.TimetableConfigCreate, db: Session = Depends(get_db)):
+    return service.update_config(db, config_id, data)
+
+@router.delete("/config/{config_id}")
+def delete_config(config_id: int, db: Session = Depends(get_db)):
+    success = service.delete_config(db, config_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Configuration not found")
+    return {"status": "success", "message": "Configuration deleted"}
+
 @router.post("/workload", response_model=schemas.WorkloadResponse)
 def add_workload_mapping(data: schemas.WorkloadCreate, db: Session = Depends(get_db)):
     return service.create_workload(db, data)

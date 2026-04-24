@@ -8,6 +8,8 @@ class TimetableConfigBase(BaseModel):
     days: List[str]
     periods: int
     duration: int
+    start_time: Optional[str] = "08:30 AM"
+    end_time: Optional[str] = "03:30 PM"
     breaks: Optional[List[dict]] = []
     drill_periods: Optional[List[dict]] = []
     fixed_slots: Optional[List[dict]] = []
