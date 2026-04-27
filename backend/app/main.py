@@ -6,6 +6,7 @@ from app.academics import routes as academics_routes
 from app.timetable import routes as timetable_routes
 from app.notices import routes as notice_routes
 from app.students import routes as student_routes
+from app.finance import routes as finance_routes
 
 # NOTE: Do NOT use create_all() here.
 # All database schema changes are managed by Alembic migrations.
@@ -30,6 +31,7 @@ app.include_router(academics_routes.router)
 app.include_router(timetable_routes.router)
 app.include_router(notice_routes.router)
 app.include_router(student_routes.router)
+app.include_router(finance_routes.router)
 
 @app.get("/")
 def root():

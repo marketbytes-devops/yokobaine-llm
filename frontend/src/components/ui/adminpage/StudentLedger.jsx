@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Save, UserPlus, FileText, Search, GraduationCap, Users, ChevronRight, ArrowLeft, ChevronLeft, Eye, Edit, User, Mail, Phone, Calendar, MapPin, Droplet, Hash, LogOut, Plus, Trash2 } from 'lucide-react';
 import config from "@/config";
 
-export const StudentLedgerModule = () => {
+export const StudentLedgerModule = ({ targetStudent }) => {
     const [activeTab, setActiveTab] = useState('add');
     const [viewMode, setViewMode] = useState('grid'); // 'grid', 'roster', 'profile'
     const [selectedClass, setSelectedClass] = useState(null); 
@@ -152,6 +152,14 @@ export const StudentLedgerModule = () => {
             fetchTeachers();
         }
     }, [activeTab, selectedLevel, viewMode, currentPage]);
+
+    useEffect(() => {
+        if (targetStudent) {
+            setSelectedStudent(targetStudent);
+            setViewMode('profile');
+            setActiveTab('directory');
+        }
+    }, [targetStudent]);
 
     const handleSave = async () => {
         if (!form.admissionId || !form.studentName || !form.parentNamePhone || !form.section) {
@@ -611,6 +619,25 @@ const ClassCard = ({ cls, onClick }) => (
 );
 
 const StudentProfileView = ({ student, backAction, onEdit }) => {
+    const [invoices, setInvoices] = useState([]);
+
+    useEffect(() => {
+        if (student) {
+            fetchInvoices(student.id);
+        }
+    }, [student]);
+
+    const fetchInvoices = async (studentId) => {
+        try {
+            const res = await fetch(`${config.API_BASE_URL}/v1/finance/invoices/${studentId}`);
+            if (res.ok) {
+                setInvoices(await res.json());
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
     return (
         <div className="space-y-8 animate-in slide-in-from-right-4 duration-500 pb-20">
             {/* Header Profile Card */}
@@ -683,6 +710,46 @@ const StudentProfileView = ({ student, backAction, onEdit }) => {
                         <div className="col-span-2">
                             <InfoItem label="Home Address" value={student.guardian?.home_address || 'Address not registered'} />
                         </div>
+                    </div>
+                </InfoCard>
+            </div>
+
+            {/* Financial & Payment Ledger */}
+            <div className="mt-8">
+                <InfoCard title="Financial & Payment Ledger" icon={<FileText className="text-emerald-500" size={24} />}>
+                    <div className="overflow-hidden rounded-[2.5rem] border border-slate-100 shadow-inner bg-slate-50/50">
+                        <table className="w-full text-left">
+                            <thead>
+                                <tr className="border-b border-slate-100 bg-white shadow-sm">
+                                    <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</th>
+                                    <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Fee Type</th>
+                                    <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Amount</th>
+                                    <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 bg-white">
+                                {invoices.length > 0 ? invoices.map((inv) => (
+                                    <tr key={inv.id} className="hover:bg-slate-50/50 transition-colors">
+                                        <td className="px-6 py-5 text-sm font-bold text-slate-500">{new Date(inv.due_date).toLocaleDateString()}</td>
+                                        <td className="px-6 py-5 text-sm font-black text-slate-900">{inv.fee_type}</td>
+                                        <td className="px-6 py-5 text-sm font-black text-slate-900">₹{inv.amount.toLocaleString()}</td>
+                                        <td className="px-6 py-5">
+                                            <span className={`px-3 py-1.5 text-[10px] font-black rounded-xl uppercase tracking-widest ${
+                                                inv.status === 'Paid' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+                                            }`}>
+                                                {inv.status}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                )) : (
+                                    <tr>
+                                        <td colSpan="4" className="px-6 py-10 text-center text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                            No payment records found
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                 </InfoCard>
             </div>

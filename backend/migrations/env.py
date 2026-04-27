@@ -38,7 +38,7 @@ import app.timetable.models  # noqa: F401
 
 # Stage 3 — Ledger, Finance, Communication, Settings
 # import app.ledger.models  # noqa: F401
-# import app.finance.models  # noqa: F401
+import app.finance.models  # noqa: F401
 import app.notices.models  # noqa: F401
 
 # ── Build DB URL from app configuration ────────────────────────────────────
