@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Search, Moon, Bell, School } from "lucide-react";
 import Sidebar from "../../layout/sidebar";
 import { SchoolProfileModule } from "./SchoolProfile";
@@ -15,6 +15,16 @@ import { TeacherManagementModule } from "./TeacherManagement";
 
 const AdminDashboard = () => {
     const [activeTab, setActiveTab] = useState("Dashboard");
+    const [globalTargetStudent, setGlobalTargetStudent] = useState(null);
+
+    useEffect(() => {
+        const handleNavigation = (e) => {
+            setGlobalTargetStudent(e.detail);
+            setActiveTab("Ledger");
+        };
+        window.addEventListener('navigateToStudentProfile', handleNavigation);
+        return () => window.removeEventListener('navigateToStudentProfile', handleNavigation);
+    }, []);
 
     const renderContent = () => {
         switch (activeTab) {
@@ -31,11 +41,13 @@ const AdminDashboard = () => {
             case "Reports":
                 return <TimetableBuilderModule />;
             case "Ledger":
-                return <StudentLedgerModule />;
+                return <StudentLedgerModule targetStudent={globalTargetStudent} />;
             case "Broadcast":
                 return <NoticeboardModule />;
-            case "Finance":
-                return <FinancialManagementModule />;
+            case "Finance-Categories":
+            case "Finance-Structure":
+            case "Finance-Collection":
+                return <FinancialManagementModule initialTab={activeTab === "Finance-Categories" ? "categories" : activeTab === "Finance-Structure" ? "structure" : "collection"} />;
             case "Roles":
                 return <RoleManagementModule />;
             default:
