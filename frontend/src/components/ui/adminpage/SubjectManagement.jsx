@@ -148,12 +148,14 @@ export const SubjectManagementModule = ({ onBack }) => {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-100 pb-8">
                 <div className="flex items-center gap-4">
-                    <button
-                        onClick={onBack}
-                        className="w-12 h-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:shadow-lg transition-all"
-                    >
-                        <ArrowLeft size={20} />
-                    </button>
+                    {onBack && (
+                        <button
+                            onClick={onBack}
+                            className="w-12 h-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:shadow-lg transition-all"
+                        >
+                            <ArrowLeft size={20} />
+                        </button>
+                    )}
                     <div>
                         <h2 className="text-4xl font-black text-slate-900 tracking-tighter mb-2">Subject Repository</h2>
                         <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em]">Curriculum assignment per grade level</p>

@@ -33,6 +33,13 @@ def add_workload_mapping(data: schemas.WorkloadCreate, db: Session = Depends(get
 def get_class_workloads(class_id: int, db: Session = Depends(get_db)):
     return service.get_workloads_by_class(db, class_id)
 
+@router.delete("/workload/{workload_id}")
+def delete_workload(workload_id: int, db: Session = Depends(get_db)):
+    success = service.delete_workload(db, workload_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Workload not found")
+    return {"status": "success", "message": "Workload deleted"}
+
 @router.post("/generate")
 def generate_timetable(request: schemas.TimetableGenerateRequest, db: Session = Depends(get_db)):
     """Triggers the Backtracking Algorithm to generate a perfect schedule"""

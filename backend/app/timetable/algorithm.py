@@ -35,9 +35,8 @@ class TimetableGenerator:
         for tid in self.teacher_ids:
             self.teacher_busy[tid] = {day: [False] * self.periods_count for day in self.days}
 
-        # 1. Apply Fixed/Drill Slots (Hard)
-        combined_fixed = self.drill_periods + self.fixed_slots
-        for fs in combined_fixed:
+        # 1. Apply Fixed Slots (Hard) - Level-wide events (Lunch, Assembly etc)
+        for fs in self.fixed_slots:
             p_idx = fs['period'] - 1
             days_to_apply = [fs['day']] if fs.get('day') and fs['day'] != 'All' else self.days
             
@@ -45,7 +44,7 @@ class TimetableGenerator:
                 if d in self.days and 0 <= p_idx < self.periods_count:
                     for cid in self.class_ids:
                         self.grid[cid][d][p_idx] = {
-                            "subject": fs.get('subject', 'Mass Drill'), 
+                            "subject": fs.get('subject', 'Fixed Event'), 
                             "teacher_id": -1, 
                             "teacher_name": "N/A"
                         }
@@ -61,6 +60,21 @@ class TimetableGenerator:
         # 3. Prepare Tasks
         self.remaining_tasks = []
         for w in self.workloads:
+            # Handle Per-Class Fixed Slots (e.g. Drill)
+            if w.get('day') and w.get('period'):
+                p_idx = w['period'] - 1
+                d = w['day']
+                cid = w['class_id']
+                if d in self.days and 0 <= p_idx < self.periods_count:
+                    self.grid[cid][d][p_idx] = {
+                        "subject": w['subject_name'],
+                        "teacher_id": w['teacher_id'],
+                        "teacher_name": w.get('teacher_name', 'N/A')
+                    }
+                    if w['teacher_id'] != -1:
+                        self.teacher_busy[w['teacher_id']][d][p_idx] = True
+                continue
+
             # If is_double, we group periods into pairs
             count = w['periods_per_week']
             if w.get('is_double'):
@@ -87,6 +101,13 @@ class TimetableGenerator:
         return None
 
     def _backtrack(self, task_idx):
+        # Limit iterations to prevent infinite hanging
+        if not hasattr(self, 'iterations'):
+            self.iterations = 0
+        self.iterations += 1
+        if self.iterations > 200000:
+            return False
+
         if task_idx == len(self.remaining_tasks):
             return True
 
@@ -156,27 +177,40 @@ class TimetableGenerator:
             # 1. Class Slot Free
             if self.grid[cid][day][curr_p] is not None: return False
             # 2. Teacher Free
-            if self.teacher_busy[tid][day][curr_p]: return False
+            if tid != -1 and self.teacher_busy[tid][day][curr_p]: return False
         
-        # 3. Same subject twice in a row (unless it's THIS double period)
-        if p > 0:
-            prev = self.grid[cid][day][p-1]
-            if prev and prev['subject'] == sub: return False
-        if not is_double and p < self.periods_count - 1:
-            next_s = self.grid[cid][day][p+1]
-            if next_s and next_s['subject'] == sub: return False
-
-        # 4. Balanced distribution: 
-        # Dynamically calculate limit based on total periods per week
-        # e.g., if 10 periods/week and 5 days, limit is 10/5 + 1 = 3 per day
+        # 3. Frequency & Variety Rule
         day_subjects = [self.grid[cid][day][pi]['subject'] for pi in range(self.periods_count) if self.grid[cid][day][pi]]
         periods_per_week = task.get('periods_per_week', 5)
         
-        # INCREASED LIMIT: Allow slightly more density to avoid generation failure
-        limit = max(2, (periods_per_week // len(self.days)) + 2) 
-        if is_double: limit += 1
+        # If subject has 5 or fewer periods/week, it should ideally only appear ONCE per day
+        # to ensure the students see a variety of subjects every day.
+        if periods_per_week <= len(self.days):
+            if sub in day_subjects: return False
+        else:
+            # If it must appear twice, enforce a GAP of at least 2 periods
+            # (e.g. Hindi in P1, then Physics/Math/Eng, then Hindi in P4)
+            # This prevents "Hindi, Hindi, Physics, Physics"
+            if sub in day_subjects:
+                # Find the existing period of this subject
+                for pi in range(self.periods_count):
+                    slot = self.grid[cid][day][pi]
+                    if slot and slot['subject'] == sub:
+                        if abs(pi - p) < 3: return False # Must have at least 2 slots gap
+
+        # 4. Strict Adjacency (No AA)
+        if p > 0:
+            prev = self.grid[cid][day][p-1]
+            if prev and prev['subject'] == sub: return False
         
-        if day_subjects.count(sub) >= limit: return False
+        if is_double:
+            if p < self.periods_count - 2:
+                after = self.grid[cid][day][p+2]
+                if after and after['subject'] == sub: return False
+        else:
+            if p < self.periods_count - 1:
+                after = self.grid[cid][day][p+1]
+                if after and after['subject'] == sub: return False
 
         return True
 

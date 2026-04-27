@@ -29,9 +29,11 @@ class ClassWorkload(Base):
     config_id        = Column(Integer, ForeignKey("timetable_configs.id"), nullable=True) # Linked to a specific config
     class_id         = Column(Integer, ForeignKey("school_classes.id"), nullable=False)
     subject_name     = Column(String(100), nullable=False)
-    teacher_id       = Column(Integer, ForeignKey("teachers.id"), nullable=False)
+    teacher_id       = Column(Integer, ForeignKey("teachers.id"), nullable=True)
     periods_per_week = Column(Integer, nullable=False)
     is_double        = Column(Boolean, default=False) # For Lab subjects
+    day              = Column(String(20), nullable=True) # For fixed slots
+    period           = Column(Integer, nullable=True)   # For fixed slots
 
     
     # Relationships
