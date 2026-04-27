@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { 
-    Wallet, 
-    Settings2, 
-    LayoutGrid, 
-    Plus, 
-    Trash2, 
-    ChevronRight, 
-    IndianRupee, 
-    Clock, 
-    Layers, 
-    CheckCircle2, 
+import {
+    Wallet,
+    Settings2,
+    LayoutGrid,
+    Plus,
+    Trash2,
+    ChevronRight,
+    IndianRupee,
+    Clock,
+    Layers,
+    CheckCircle2,
     Search,
     Filter,
     Calendar,
@@ -55,7 +55,7 @@ export const FinancialManagementModule = ({ initialTab = 'categories' }) => {
         "HIGHERSECONDARY": ["Class 11", "Class 12"]
     };
 
-    const frequencies = ["Yearly", "Monthly", "Quarterly", "Bi-Monthly", "Weekly", "One-Time"];
+    const frequencies = ["Yearly", "One-Time"];
 
     return (
         <div className="space-y-8 animate-in fade-in duration-700 w-full max-w-6xl mx-auto pb-10">
@@ -70,23 +70,25 @@ export const FinancialManagementModule = ({ initialTab = 'categories' }) => {
             {/* View Container */}
             <div className="translate-y-0 opacity-100 transition-all duration-500">
                 {activeTab === 'categories' && (
-                    <FeeCategories 
-                        categories={categories} 
-                        fetchCategories={fetchCategories} 
+                    <FeeCategories
+                        categories={categories}
+                        fetchCategories={fetchCategories}
                     />
                 )}
                 {activeTab === 'structure' && (
-                    <StructureCreator 
-                        levelConfigs={levelConfigs} 
-                        categories={categories} 
+                    <StructureCreator
+                        levelConfigs={levelConfigs}
+                        categories={categories}
                         frequencies={frequencies}
                         structures={structures}
                         fetchStructures={fetchStructures}
                     />
                 )}
                 {activeTab === 'collection' && (
-                    <FeeCollection 
+                    <FeeCollection
                         levelConfigs={levelConfigs}
+                        categories={categories}
+                        structures={structures}
                     />
                 )}
             </div>
@@ -133,11 +135,11 @@ const FeeCategories = ({ categories, fetchCategories }) => {
                     </div>
                     <h3 className="text-2xl font-black text-slate-900 tracking-tight mb-2">Create Category</h3>
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-8">Define new financial entry types</p>
-                    
+
                     <div className="space-y-6">
                         <div className="group transition-all">
                             <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest mb-3 ml-1">Category Name</label>
-                            <input 
+                            <input
                                 type="text"
                                 value={newCategory}
                                 onChange={(e) => setNewCategory(e.target.value)}
@@ -145,7 +147,7 @@ const FeeCategories = ({ categories, fetchCategories }) => {
                                 className="w-full bg-slate-50/50 border border-slate-100 px-6 py-5 rounded-[1.8rem] text-sm font-semibold text-slate-800 placeholder-slate-400 outline-none focus:ring-8 focus:ring-[#0BC48B]/5 focus:border-[#0BC48B] focus:bg-white transition-all shadow-sm"
                             />
                         </div>
-                        <button 
+                        <button
                             onClick={handleAdd}
                             className="w-full bg-slate-900 text-white py-5 rounded-[1.8rem] font-black text-sm flex items-center justify-center gap-4 shadow-xl hover:-translate-y-1 active:scale-95 transition-all"
                         >
@@ -168,7 +170,7 @@ const FeeCategories = ({ categories, fetchCategories }) => {
                                         </div>
                                         <span className="text-sm font-black text-slate-700">{cat.name}</span>
                                     </div>
-                                    <button 
+                                    <button
                                         onClick={() => handleRemove(cat.id)}
                                         className="opacity-0 group-hover:opacity-100 p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
                                     >
@@ -234,7 +236,7 @@ const StructureCreator = ({ levelConfigs, categories, frequencies, structures, f
     };
 
     const classStructures = structures.filter(s => s.class_name === selectedClass);
-    
+
     const groupedStructures = classStructures.reduce((acc, curr) => {
         if (!acc[curr.category_name]) acc[curr.category_name] = [];
         acc[curr.category_name].push(curr);
@@ -252,11 +254,10 @@ const StructureCreator = ({ levelConfigs, categories, frequencies, structures, f
                             setSelectedLevel(level);
                             setSelectedClass(null);
                         }}
-                        className={`px-8 py-4 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-4 ${
-                            selectedLevel === level 
-                            ? "bg-[#0BC48B] text-white shadow-lg shadow-[#0BC48B]/30 scale-105" 
-                            : "bg-slate-900 text-slate-400 hover:text-white"
-                        }`}
+                        className={`px-8 py-4 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-4 ${selectedLevel === level
+                                ? "bg-[#0BC48B] text-white shadow-lg shadow-[#0BC48B]/30 scale-105"
+                                : "bg-slate-900 text-slate-400 hover:text-white"
+                            }`}
                     >
                         <div className={`w-2 h-2 rounded-full ${selectedLevel === level ? "bg-white animate-pulse" : "bg-slate-600"}`} />
                         {level}
@@ -272,11 +273,10 @@ const StructureCreator = ({ levelConfigs, categories, frequencies, structures, f
                         <button
                             key={cls}
                             onClick={() => setSelectedClass(cls)}
-                            className={`w-full text-left p-6 rounded-[2rem] border transition-all flex items-center justify-between group ${
-                                selectedClass === cls 
-                                ? "bg-white border-[#0BC48B] shadow-xl shadow-slate-200" 
-                                : "bg-white/50 border-transparent hover:border-slate-200"
-                            }`}
+                            className={`w-full text-left p-6 rounded-[2rem] border transition-all flex items-center justify-between group ${selectedClass === cls
+                                    ? "bg-white border-[#0BC48B] shadow-xl shadow-slate-200"
+                                    : "bg-white/50 border-transparent hover:border-slate-200"
+                                }`}
                         >
                             <span className={`font-black text-sm transition-colors ${selectedClass === cls ? "text-slate-900" : "text-slate-500"}`}>{cls}</span>
                             <div className={`p-2 rounded-xl transition-all ${selectedClass === cls ? "bg-[#0BC48B] text-white" : "bg-slate-100 text-slate-300 group-hover:text-slate-500"}`}>
@@ -309,9 +309,9 @@ const StructureCreator = ({ levelConfigs, categories, frequencies, structures, f
                                 <div className="md:col-span-1">
                                     <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest mb-3 ml-1">Fee Type</label>
                                     <div className="relative">
-                                        <select 
+                                        <select
                                             value={form.category_name}
-                                            onChange={(e) => setForm({...form, category_name: e.target.value})}
+                                            onChange={(e) => setForm({ ...form, category_name: e.target.value })}
                                             className="w-full bg-slate-50 border border-slate-100 px-6 py-5 rounded-[1.8rem] text-sm font-semibold text-slate-800 outline-none focus:ring-8 focus:ring-[#0BC48B]/5 focus:border-[#0BC48B] transition-all appearance-none cursor-pointer"
                                         >
                                             <option value="">Select Type...</option>
@@ -326,9 +326,9 @@ const StructureCreator = ({ levelConfigs, categories, frequencies, structures, f
                                 <div className="md:col-span-1">
                                     <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest mb-3 ml-1">Frequency</label>
                                     <div className="relative">
-                                        <select 
+                                        <select
                                             value={form.frequency}
-                                            onChange={(e) => setForm({...form, frequency: e.target.value})}
+                                            onChange={(e) => setForm({ ...form, frequency: e.target.value })}
                                             className="w-full bg-slate-50 border border-slate-100 px-6 py-5 rounded-[1.8rem] text-sm font-semibold text-slate-800 outline-none focus:ring-8 focus:ring-[#0BC48B]/5 focus:border-[#0BC48B] transition-all appearance-none cursor-pointer"
                                         >
                                             {frequencies.map(f => <option key={f} value={f}>{f}</option>)}
@@ -342,10 +342,10 @@ const StructureCreator = ({ levelConfigs, categories, frequencies, structures, f
                                 <div className="md:col-span-1">
                                     <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest mb-3 ml-1">Amount (₹)</label>
                                     <div className="relative">
-                                        <input 
+                                        <input
                                             type="number"
                                             value={form.amount}
-                                            onChange={(e) => setForm({...form, amount: e.target.value})}
+                                            onChange={(e) => setForm({ ...form, amount: e.target.value })}
                                             placeholder="0.00"
                                             className="w-full bg-slate-50 border border-slate-100 pl-14 pr-6 py-5 rounded-[1.8rem] text-sm font-black text-slate-800 outline-none focus:ring-8 focus:ring-[#0BC48B]/5 focus:border-[#0BC48B] transition-all shadow-sm"
                                         />
@@ -355,7 +355,7 @@ const StructureCreator = ({ levelConfigs, categories, frequencies, structures, f
                                     </div>
                                 </div>
 
-                                <button 
+                                <button
                                     onClick={handleAddStructure}
                                     className="h-[64px] bg-[#0BC48B] text-white px-8 rounded-[1.8rem] font-black text-sm flex items-center justify-center gap-4 shadow-xl hover:-translate-y-1 active:scale-95 transition-all"
                                 >
@@ -387,9 +387,9 @@ const StructureCreator = ({ levelConfigs, categories, frequencies, structures, f
                                                         </td>
                                                         <td className="px-8 py-5">
                                                             <div className="relative inline-block w-40">
-                                                                <select 
+                                                                <select
                                                                     value={activeEntry.frequency}
-                                                                    onChange={(e) => setActiveRowFrequencies(prev => ({...prev, [catName]: e.target.value}))}
+                                                                    onChange={(e) => setActiveRowFrequencies(prev => ({ ...prev, [catName]: e.target.value }))}
                                                                     className="w-full bg-indigo-50 text-indigo-600 border border-transparent px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest outline-none focus:ring-4 focus:ring-indigo-500/20 appearance-none cursor-pointer transition-all hover:bg-indigo-100"
                                                                 >
                                                                     {feeEntries.map(e => <option key={e.id} value={e.frequency}>{e.frequency}</option>)}
@@ -403,7 +403,7 @@ const StructureCreator = ({ levelConfigs, categories, frequencies, structures, f
                                                             <span className="text-sm font-black text-[#0BC48B] transition-all">₹{activeEntry.amount.toLocaleString('en-IN')}</span>
                                                         </td>
                                                         <td className="px-8 py-5 text-right">
-                                                            <button 
+                                                            <button
                                                                 onClick={() => removeStructure(activeEntry.id)}
                                                                 className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all opacity-70 group-hover:opacity-100"
                                                                 title={`Delete ${activeEntry.frequency} entry`}
@@ -445,25 +445,34 @@ const StructureCreator = ({ levelConfigs, categories, frequencies, structures, f
 };
 
 // --- PAGE 3: FEE COLLECTION ---
-const FeeCollection = ({ levelConfigs }) => {
+const FeeCollection = ({ levelConfigs, categories, structures }) => {
     const [selectedLevel, setSelectedLevel] = useState('LP');
     const [selectedClass, setSelectedClass] = useState(null);
     const [selectedDivision, setSelectedDivision] = useState(null);
+    const [selectedFeeType, setSelectedFeeType] = useState('All');
     const [studentsList, setStudentsList] = useState([]);
 
     const divisions = ['A', 'B', 'C', 'D'];
 
     useEffect(() => {
-        if (selectedClass && selectedDivision) {
-            fetchStudents();
+        if (selectedClass) {
+            if (selectedFeeType === 'All' || selectedDivision) {
+                fetchStudents();
+            } else {
+                setStudentsList([]);
+            }
         } else {
             setStudentsList([]);
         }
-    }, [selectedClass, selectedDivision]);
+    }, [selectedClass, selectedDivision, selectedFeeType]);
 
     const fetchStudents = async () => {
         try {
-            const res = await fetch(`${config.API_BASE_URL}/students/?grade=${selectedClass}&section=${selectedDivision}`);
+            let url = `${config.API_BASE_URL}/students/?grade=${selectedClass}`;
+            if (selectedFeeType !== 'All' && selectedDivision) {
+                url += `&section=${selectedDivision}`;
+            }
+            const res = await fetch(url);
             if (res.ok) {
                 setStudentsList(await res.json());
             }
@@ -489,11 +498,10 @@ const FeeCollection = ({ levelConfigs }) => {
                             setSelectedClass(null);
                             setSelectedDivision(null);
                         }}
-                        className={`px-8 py-4 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-4 ${
-                            selectedLevel === level 
-                            ? "bg-[#0BC48B] text-white shadow-lg shadow-[#0BC48B]/30 scale-105" 
-                            : "bg-slate-900 text-slate-400 hover:text-white"
-                        }`}
+                        className={`px-8 py-4 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-4 ${selectedLevel === level
+                                ? "bg-[#0BC48B] text-white shadow-lg shadow-[#0BC48B]/30 scale-105"
+                                : "bg-slate-900 text-slate-400 hover:text-white"
+                            }`}
                     >
                         <div className={`w-2 h-2 rounded-full ${selectedLevel === level ? "bg-white animate-pulse" : "bg-slate-600"}`} />
                         {level}
@@ -512,11 +520,10 @@ const FeeCollection = ({ levelConfigs }) => {
                                 setSelectedClass(cls);
                                 setSelectedDivision(null);
                             }}
-                            className={`w-full text-left p-6 rounded-[2rem] border transition-all flex items-center justify-between group ${
-                                selectedClass === cls 
-                                ? "bg-white border-[#0BC48B] shadow-xl shadow-slate-200" 
-                                : "bg-white/50 border-transparent hover:border-slate-200"
-                            }`}
+                            className={`w-full text-left p-6 rounded-[2rem] border transition-all flex items-center justify-between group ${selectedClass === cls
+                                    ? "bg-white border-[#0BC48B] shadow-xl shadow-slate-200"
+                                    : "bg-white/50 border-transparent hover:border-slate-200"
+                                }`}
                         >
                             <span className={`font-black text-sm transition-colors ${selectedClass === cls ? "text-slate-900" : "text-slate-500"}`}>{cls}</span>
                             <div className={`p-2 rounded-xl transition-all ${selectedClass === cls ? "bg-[#0BC48B] text-white" : "bg-slate-100 text-slate-300 group-hover:text-slate-500"}`}>
@@ -530,7 +537,7 @@ const FeeCollection = ({ levelConfigs }) => {
                 <div className="lg:col-span-9 animate-in fade-in slide-in-from-left-4 duration-500">
                     {selectedClass ? (
                         <div className="bg-white rounded-[3rem] p-10 border border-slate-100 shadow-2xl shadow-slate-200/50">
-                            
+
                             <div className="flex items-center justify-between mb-8 pb-8 border-b border-slate-100">
                                 <div className="flex items-center gap-5">
                                     <div className="w-14 h-14 bg-[#0BC48B]/10 rounded-2xl flex items-center justify-center text-[#0BC48B] shadow-sm">
@@ -541,61 +548,136 @@ const FeeCollection = ({ levelConfigs }) => {
                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-2">Filter by {selectedClass}</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-2xl border border-slate-100">
-                                    {divisions.map((div) => (
-                                        <label key={div} className="cursor-pointer group flex items-center gap-2 px-4 py-2 rounded-xl hover:bg-white transition-all shadow-sm">
-                                            <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${selectedDivision === div ? "bg-[#0BC48B] border-[#0BC48B]" : "bg-slate-100 border-slate-200"}`}>
-                                                {selectedDivision === div && <CheckCircle2 size={12} className="text-white" />}
-                                            </div>
-                                            <span className={`font-black text-xs ${selectedDivision === div ? "text-[#0BC48B]" : "text-slate-500"}`}>Sec {div}</span>
-                                            <input type="radio" className="hidden" name="division" onChange={() => setSelectedDivision(div)} checked={selectedDivision === div} />
-                                        </label>
-                                    ))}
+                                <div className="flex items-center gap-4">
+                                    <div className="relative">
+                                        <select
+                                            value={selectedFeeType}
+                                            onChange={(e) => setSelectedFeeType(e.target.value)}
+                                            className="bg-white border border-slate-200 pl-4 pr-10 py-2.5 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-[#0BC48B] focus:ring-2 focus:ring-[#0BC48B]/20 appearance-none shadow-sm cursor-pointer"
+                                        >
+                                            <option value="All">All Fee Types</option>
+                                            {categories && categories.map(cat => (
+                                                <option key={cat.id} value={cat.name}>{cat.name}</option>
+                                            ))}
+                                        </select>
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                            <Filter size={14} />
+                                        </div>
+                                    </div>
+                                    <div className={`relative ${selectedFeeType === 'All' ? 'opacity-50 pointer-events-none' : ''}`}>
+                                        <select
+                                            value={selectedDivision || ""}
+                                            onChange={(e) => setSelectedDivision(e.target.value)}
+                                            disabled={selectedFeeType === 'All'}
+                                            className="bg-white border border-slate-200 pl-4 pr-10 py-2.5 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-[#0BC48B] focus:ring-2 focus:ring-[#0BC48B]/20 appearance-none shadow-sm cursor-pointer disabled:bg-slate-50"
+                                        >
+                                            <option value="" disabled>Select Section</option>
+                                            {divisions.map((div) => (
+                                                <option key={div} value={div}>Section {div}</option>
+                                            ))}
+                                        </select>
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                            <Layers size={14} />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
-                            {selectedDivision ? (
+                            {selectedDivision || selectedFeeType === 'All' ? (
                                 <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
                                     <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-widest pl-2 mb-4">
-                                        Enrolled Students ({selectedClass} - {selectedDivision})
+                                        Enrolled Students ({selectedClass}{selectedFeeType !== 'All' ? ` - Sec ${selectedDivision}` : ' - All Sections'})
                                     </h4>
-                                    <div className="overflow-hidden rounded-[2.5rem] border border-slate-100 shadow-inner bg-slate-50/50">
+                                    <div className="overflow-x-auto rounded-[2.5rem] border border-slate-100 shadow-inner bg-slate-50/50">
                                         <table className="w-full text-left">
                                             <thead>
                                                 <tr className="border-b border-slate-100 bg-white shadow-sm">
                                                     <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Roll</th>
                                                     <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Name</th>
                                                     <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Parent</th>
+                                                    {selectedFeeType !== 'All' ? (
+                                                        <>
+                                                            <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                                                            <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Paid</th>
+                                                            <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Pending</th>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Emergency Contact</th>
+                                                            <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Home Address</th>
+                                                        </>
+                                                    )}
                                                     <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Ledger</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-slate-100 bg-white">
-                                                {studentsList.length > 0 ? studentsList.map((st, idx) => (
-                                                    <tr key={st.id} className="hover:bg-slate-50/50 transition-colors group">
-                                                        <td className="px-6 py-5 font-black text-slate-900 text-sm">{(idx + 1).toString().padStart(2, '0')}</td>
-                                                        <td className="px-6 py-5">
-                                                            <div className="flex items-center gap-4">
-                                                                <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white font-black text-xs shadow-lg">
-                                                                    {st.full_name.charAt(0)}
+                                                {studentsList.length > 0 ? studentsList.map((st, idx) => {
+                                                    const globalMockPayments = JSON.parse(localStorage.getItem('globalMockPayments') || '{}');
+                                                    const studentPayments = globalMockPayments[st.id] || {};
+
+                                                    let status = "Pending";
+                                                    let paid = 0;
+                                                    let pending = 0;
+
+                                                    if (selectedFeeType !== 'All') {
+                                                        const duesData = structures.find(s => s.class_name === selectedClass && s.category_name === selectedFeeType);
+                                                        const duesAmount = duesData ? duesData.amount : 0;
+                                                        paid = studentPayments[selectedFeeType] || 0;
+                                                        pending = duesAmount - paid;
+                                                        status = pending <= 0 ? "Paid" : "Pending";
+                                                    }
+
+                                                    return (
+                                                        <tr key={st.id} className="hover:bg-slate-50/50 transition-colors group">
+                                                            <td className="px-6 py-5 font-black text-slate-900 text-sm">{(idx + 1).toString().padStart(2, '0')}</td>
+                                                            <td className="px-6 py-5">
+                                                                <div className="flex items-center gap-4">
+                                                                    <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white font-black text-xs shadow-lg">
+                                                                        {st.full_name.charAt(0)}
+                                                                    </div>
+                                                                    <span className="font-black text-slate-900 text-sm">{st.full_name}</span>
                                                                 </div>
-                                                                <span className="font-black text-slate-900 text-sm">{st.full_name}</span>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-6 py-5 text-slate-500 font-bold text-xs">
-                                                            {st.guardian ? st.guardian.phone_number : 'N/A'}
-                                                        </td>
-                                                        <td className="px-6 py-5 text-right">
-                                                            <button 
-                                                                onClick={() => handleInvoiceClick(st)} 
-                                                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm hover:shadow-lg transition-all"
-                                                            >
-                                                                <FileText size={14} /> Invoice Profile
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                )) : (
+                                                            </td>
+                                                            <td className="px-6 py-5 text-slate-500 font-bold text-xs">
+                                                                {st.guardian?.full_name || 'N/A'}
+                                                            </td>
+                                                            {selectedFeeType !== 'All' ? (
+                                                                <>
+                                                                    <td className="px-6 py-5">
+                                                                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${status === 'Paid' ? 'bg-[#0BC48B]/10 text-[#0BC48B]' : 'bg-rose-500/10 text-rose-500'}`}>
+                                                                            {status}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="px-6 py-5 text-slate-900 font-black text-xs">
+                                                                        ₹{paid.toLocaleString('en-IN')}
+                                                                    </td>
+                                                                    <td className="px-6 py-5 text-slate-900 font-black text-xs">
+                                                                        ₹{pending.toLocaleString('en-IN')}
+                                                                    </td>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <td className="px-6 py-5 text-slate-500 font-bold text-xs">
+                                                                        {st.guardian?.emergency_contact || 'N/A'}
+                                                                    </td>
+                                                                    <td className="px-6 py-5 text-slate-500 font-bold text-xs truncate max-w-[150px]">
+                                                                        {st.guardian?.home_address || 'No address provided'}
+                                                                    </td>
+                                                                </>
+                                                            )}
+                                                            <td className="px-6 py-5 text-right">
+                                                                <button
+                                                                    onClick={() => handleInvoiceClick(st)}
+                                                                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm hover:shadow-lg transition-all"
+                                                                >
+                                                                    <FileText size={14} /> Invoice Profile
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    )
+                                                }) : (
                                                     <tr>
-                                                        <td colSpan="4" className="px-6 py-10 text-center text-xs font-bold text-slate-400 uppercase tracking-widest">No students enrolled in this division</td>
+                                                        <td colSpan={selectedFeeType === 'All' ? "4" : "7"} className="px-6 py-10 text-center text-xs font-bold text-slate-400 uppercase tracking-widest">No students enrolled in this division</td>
                                                     </tr>
                                                 )}
                                             </tbody>
