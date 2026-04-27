@@ -1016,10 +1016,10 @@ const StepDOutputGrid = ({ onPrev, level, stream, apiTimetable, apiSchool, workl
         const fetchData = async () => {
             if (!level || !apiSchool) return;
             try {
-                const cRes = await fetch(`http://127.0.0.1:8000/api/v1/school/sections/${level}/classes`);
+                const cRes = await fetch(`${apiSchool}/sections/${level}/classes`);
                 const cData = await cRes.json();
                 setClasses(cData);
-                setSelectedClasses(cData.map(c => c.id)); // Default: all in level
+                setSelectedClasses([]); // Default: none selected
 
                 const tRes = await fetch(`${apiSchool}/teachers`);
                 const tData = await tRes.json();
@@ -1039,7 +1039,7 @@ const StepDOutputGrid = ({ onPrev, level, stream, apiTimetable, apiSchool, workl
                 body: JSON.stringify({ 
                     level, 
                     stream: stream || null,
-                    class_ids: selectedClasses.length > 0 ? selectedClasses : null,
+                    class_ids: selectedClasses,
                     term_id: null 
                 })
             });
@@ -1142,7 +1142,7 @@ const StepDOutputGrid = ({ onPrev, level, stream, apiTimetable, apiSchool, workl
                     <button onClick={onPrev} className="flex-1 lg:flex-none bg-slate-50 text-slate-600 px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-colors">Settings</button>
                     <button 
                         onClick={generateTimetable} 
-                        disabled={status === 'generating'}
+                        disabled={status === 'generating' || selectedClasses.length === 0}
                         className="flex-1 lg:flex-none bg-[#0BC48B] text-white px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl shadow-[#0BC48B]/20 hover:-translate-y-1 active:scale-95 transition-all disabled:opacity-50"
                     >
                         {status === 'generating' ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Play size={16} fill="currentColor" />}
