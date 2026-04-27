@@ -13,7 +13,8 @@ import {
     Megaphone,
     ChevronRight,
     HelpCircle,
-    Shield
+    Shield,
+    BookMarked
 } from "lucide-react";
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
@@ -29,12 +30,11 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
             <nav className="px-4 space-y-1.5 mt-8">
                 <SideItem icon={<LayoutDashboard size={18} />} label="Dashboard" active={activeTab === "Dashboard"} onClick={() => setActiveTab("Dashboard")} />
                 <SideItem icon={<School size={18} />} label="School Profile" active={activeTab === "School Profile"} onClick={() => setActiveTab("School Profile")} />
-                <SideItem icon={<MapPin size={18} />} label="School Structure" active={activeTab === "Structure"} onClick={() => setActiveTab("Structure")} />
-                <SideItem icon={<UserPlus size={18} />} label="User Management & RBAC" active={activeTab === "RBAC"} onClick={() => setActiveTab("RBAC")} />
+                <SideItem icon={<BookMarked size={18} />} label="Subject Management" active={activeTab === "Subject"} onClick={() => setActiveTab("Subject")} />
                 <SideItem icon={<Users size={18} />} label="Faculty Management" active={activeTab === "Faculty"} onClick={() => setActiveTab("Faculty")} />
+                <SideItem icon={<MapPin size={18} />} label="School Structure" active={activeTab === "Structure"} onClick={() => setActiveTab("Structure")} />
                 <SideItem icon={<Clock size={18} />} label="Timetable Builder" active={activeTab === "Reports"} onClick={() => setActiveTab("Reports")} />
                 <SideItem icon={<GraduationCap size={18} />} label="Student & Parent Ledger" active={activeTab === "Ledger"} onClick={() => setActiveTab("Ledger")} />
-                <SideItem icon={<Megaphone size={18} />} label="Noticeboard & Broadcast" active={activeTab === "Broadcast"} onClick={() => setActiveTab("Broadcast")} />
                 
                 {/* Financial Management with Sub-menu */}
                 <div>
@@ -55,8 +55,10 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
                     )}
                 </div>
 
+                <SideItem icon={<Megaphone size={18} />} label="Noticeboard & Broadcast" active={activeTab === "Broadcast"} onClick={() => setActiveTab("Broadcast")} />
                 <SideItem icon={<Shield size={18} />} label="Roles & Permissions" active={activeTab === "Roles"} onClick={() => setActiveTab("Roles")} />
-                <SideItem icon={<Settings size={18} />} label="Settings & Security" active={activeTab === "Settings"} onClick={() => setActiveTab("Settings")} />
+                <SideItem icon={<UserPlus size={18} />} label="User Management & RBAC" active={activeTab === "RBAC"} onClick={() => setActiveTab("RBAC")} />
+                {/* <SideItem icon={<Settings size={18} />} label="Settings & Security" active={activeTab === "Settings"} onClick={() => setActiveTab("Settings")} /> */}
             </nav>
 
             {/* Support Card */}

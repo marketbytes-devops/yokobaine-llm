@@ -43,6 +43,14 @@ def create_workload(db: Session, data: schemas.WorkloadCreate):
 def get_workloads_by_class(db: Session, class_id: int):
     return db.query(models.ClassWorkload).filter(models.ClassWorkload.class_id == class_id).all()
 
+def delete_workload(db: Session, workload_id: int):
+    db_workload = db.query(models.ClassWorkload).filter(models.ClassWorkload.id == workload_id).first()
+    if db_workload:
+        db.delete(db_workload)
+        db.commit()
+        return True
+    return False
+
 def generate_timetable(db: Session, request: schemas.TimetableGenerateRequest):
     # 1. Fetch Latest Config for this Level/Stream
     config = db.query(models.TimetableConfig).filter(
@@ -80,8 +88,13 @@ def generate_timetable(db: Session, request: schemas.TimetableGenerateRequest):
     # 4. Fetch all workloads for these classes
     workloads = db.query(models.ClassWorkload).filter(models.ClassWorkload.class_id.in_(class_ids)).all()
     
-    if not workloads:
-        return {"status": "error", "message": "No workloads defined for these classes"}
+    # Check if ANY selected class is missing workloads
+    classes_with_workloads = {w.class_id for w in workloads}
+    missing_classes = [c for c in classes if c.id not in classes_with_workloads]
+    
+    if missing_classes:
+        missing_names = ", ".join([f"{c.class_name} {c.section_identifier}" for c in missing_classes])
+        return {"status": "error", "message": f"No workloads mapped for: {missing_names}. Please create workload mapping first."}
 
     # 5. Extract additional constraints
     # - Class Teachers
@@ -99,7 +112,9 @@ def generate_timetable(db: Session, request: schemas.TimetableGenerateRequest):
             "teacher_id": w.teacher_id,
             "teacher_name": teacher_map.get(w.teacher_id, "Unknown"),
             "periods_per_week": w.periods_per_week,
-            "is_double": w.is_double
+            "is_double": w.is_double,
+            "day": w.day,
+            "period": w.period
         } for w in workloads
     ]
     

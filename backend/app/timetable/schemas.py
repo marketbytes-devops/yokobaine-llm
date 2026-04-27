@@ -28,9 +28,11 @@ class WorkloadBase(BaseModel):
     config_id: Optional[int] = None
     class_id: int
     subject_name: str
-    teacher_id: int
+    teacher_id: Optional[int] = None
     periods_per_week: int
     is_double: Optional[bool] = False
+    day: Optional[str] = None
+    period: Optional[int] = None
 
 
 class WorkloadCreate(WorkloadBase):

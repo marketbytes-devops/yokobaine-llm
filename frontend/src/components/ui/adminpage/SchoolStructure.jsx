@@ -1,12 +1,10 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Save, Plus, BookOpen, Users, MapPin, ChevronDown, Edit, Trash2, CheckCircle2, BookMarked } from 'lucide-react';
-import { SubjectManagementModule } from './SubjectManagement';
+import { Save, Plus, BookOpen, Users, MapPin, ChevronDown, Edit, Trash2, CheckCircle2 } from 'lucide-react';
 import config from "@/config";
 import { SCHOOL_LEVELS } from "@/constants";
 
 export const SchoolStructureModule = () => {
-    const [view, setView] = useState("Classroom"); 
     const [classes, setClasses] = useState([]);
     const [teachers, setTeachers] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -164,23 +162,8 @@ export const SchoolStructureModule = () => {
                     <h2 className="text-4xl font-black text-slate-900 tracking-tighter mb-2">School Structure</h2>
                     <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em]">Define academic levels and classroom mapping</p>
                 </div>
-                
-                {view === "Classroom" && (
-                    <button 
-                        onClick={() => setView("Subject")}
-                        className="bg-slate-900 text-white px-8 py-4 rounded-[1.5rem] font-black text-sm flex items-center gap-4 hover:shadow-2xl hover:bg-[#0BC48B] transition-all group"
-                    >
-                        <BookMarked size={18} className="text-[#0BC48B] group-hover:text-white" />
-                        Subject Repository
-                    </button>
-                )}
             </div>
 
-            {view === "Subject" ? (
-                <SubjectManagementModule onBack={() => setView("Classroom")} />
-            ) : (
-                <>
-                {/* Level Selection Checkboxes */}
             <div className=" flex flex-wrap items-center justify-center gap-2">
                 {Object.keys(levelConfigs).map((level) => (
                     <button
@@ -340,8 +323,6 @@ export const SchoolStructureModule = () => {
                     </div>
                 </div>
             </div>
-                </>
-            )}
         </div>
     );
 };

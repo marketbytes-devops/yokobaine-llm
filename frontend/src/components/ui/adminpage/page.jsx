@@ -12,6 +12,7 @@ import { NoticeboardModule } from "./Noticeboard";
 import { DashboardModule } from "./Dashboard";
 import { RoleManagementModule } from "./RoleManagement";
 import { TeacherManagementModule } from "./TeacherManagement";
+import { SubjectManagementModule } from "./SubjectManagement";
 
 const AdminDashboard = () => {
     const [activeTab, setActiveTab] = useState("Dashboard");
@@ -38,6 +39,8 @@ const AdminDashboard = () => {
                 return <UserManagementModule />;
             case "Faculty":
                 return <TeacherManagementModule />;
+            case "Subject":
+                return <SubjectManagementModule />;
             case "Reports":
                 return <TimetableBuilderModule />;
             case "Ledger":
