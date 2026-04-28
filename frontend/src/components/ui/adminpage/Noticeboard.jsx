@@ -72,9 +72,15 @@ export const NoticeboardModule = () => {
             });
 
             if (res.ok) {
+                const newNotice = await res.json();
                 fetchNotices();
                 setForm({ title: '', content: '', target_audience: [], attachment_url: null });
                 if(fileInputRef.current) fileInputRef.current.value = "";
+                
+                // Dispatch event for global notifications
+                window.dispatchEvent(new CustomEvent('noticePublished', { 
+                    detail: { title: form.title, id: newNotice.id } 
+                }));
             } else {
                 const err = await res.json();
                 alert(err.detail || "Failed to post notice");

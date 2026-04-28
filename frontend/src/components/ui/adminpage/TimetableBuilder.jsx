@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CalendarDays, Clock, BookOpen, Settings, ChevronRight, ChevronLeft, Save, Play, CheckCircle2, AlertOctagon, ChevronDown, Plus, Trash2, Info, Dumbbell } from 'lucide-react';
+import { CalendarDays, Clock, BookOpen, Settings, ChevronRight, ChevronLeft, Save, Play, CheckCircle2, AlertOctagon, ChevronDown, Plus, Trash2, Info, Dumbbell, ShieldCheck } from 'lucide-react';
 import config from "@/config";
 
 export const TimetableBuilderModule = () => {
@@ -68,6 +68,10 @@ export const TimetableBuilderModule = () => {
     const fetchConfigs = async () => {
         try {
             const res = await fetch(`${API_BASE_TIMETABLE}/config`);
+            if (!res.ok) {
+                console.error("Failed to fetch timetable configs:", res.statusText);
+                return;
+            }
             const data = await res.json();
             // Map backend drill_periods to frontend drillPeriods
             const adapted = data.map(t => ({
@@ -164,10 +168,15 @@ export const TimetableBuilderModule = () => {
     return (
         <div className="space-y-8 animate-in fade-in duration-700 w-full max-w-7xl mx-auto pb-10">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                <div>
-                    <h2 className="text-4xl font-black text-slate-900 tracking-tighter mb-2">Automated Timetable Builder</h2>
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest tracking-[0.2em]">AI-powered scheduling and conflict resolution</p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="flex items-center gap-5">
+                    <div className="w-16 h-16 bg-[#0BC48B] rounded-[2rem] flex items-center justify-center text-white shadow-2xl shadow-[#0BC48B]/30 rotate-3">
+                        <ShieldCheck size={32} strokeWidth={2.5} />
+                    </div>
+                    <div>
+                        <h2 className="text-4xl font-black text-slate-900 tracking-tighter mb-1">Automated Timetable Builder</h2>
+                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest tracking-[0.2em]">AI-powered scheduling and conflict resolution</p>
+                    </div>
                 </div>
             </div>
 
@@ -302,8 +311,8 @@ const StepAGlobalTime = ({ data, setData, onNext, onSave, isExisting }) => {
                             <label
                                 key={lvl}
                                 className={`flex items-center gap-4 px-6 py-4 rounded-[2rem] cursor-pointer transition-all border-2 ${data.level === lvl
-                                        ? "bg-[#0BC48B]/5 border-[#0BC48B] text-slate-900 shadow-sm"
-                                        : "bg-slate-50 border-transparent text-slate-400 hover:border-slate-200"
+                                    ? "bg-[#0BC48B]/5 border-[#0BC48B] text-slate-900 shadow-sm"
+                                    : "bg-slate-50 border-transparent text-slate-400 hover:border-slate-200"
                                     }`}
                             >
                                 <div className="relative flex items-center justify-center">
@@ -507,7 +516,7 @@ const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, api
                 const url = `${apiSchool}/sections/${selectedLevel}/classes`;
                 const res = await fetch(url);
                 const data = await res.json();
-                
+
                 if (Array.isArray(data)) {
                     // Filter by stream on frontend for HIGHERSECONDARY
                     if (selectedLevel === 'HIGHERSECONDARY' && selectedStream) {
@@ -519,8 +528,8 @@ const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, api
                     setClasses([]);
                     console.error("API did not return an array of classes:", data);
                 }
-            } catch (err) { 
-                console.error("Error fetching classes:", err); 
+            } catch (err) {
+                console.error("Error fetching classes:", err);
                 setClasses([]);
             }
             finally { setIsLoading(false); }
@@ -540,8 +549,8 @@ const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, api
                 const data = await res.json();
                 if (Array.isArray(data)) setSubjects(data);
                 else setSubjects([]);
-            } catch (err) { 
-                console.error("Error fetching academic data:", err); 
+            } catch (err) {
+                console.error("Error fetching academic data:", err);
                 setSubjects([]);
             }
         };
@@ -614,7 +623,7 @@ const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, api
                     // e.g. "Class 8" matches "Class 8A" or "Class 8-A"
                     return targetClassName === configClass || targetClassName.startsWith(configClass);
                 });
-                
+
                 if (config) setAvailableSubjects(config.subjects);
                 else setAvailableSubjects([]);
             } else {
@@ -744,8 +753,8 @@ const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, api
                                 <label
                                     key={lvl}
                                     className={`flex items-center gap-4 px-6 py-4 rounded-[2rem] cursor-pointer transition-all border-2 ${selectedLevel === lvl
-                                            ? "bg-[#0BC48B]/5 border-[#0BC48B] text-slate-900 shadow-sm"
-                                            : "bg-slate-50 border-transparent text-slate-400 hover:border-slate-200"
+                                        ? "bg-[#0BC48B]/5 border-[#0BC48B] text-slate-900 shadow-sm"
+                                        : "bg-slate-50 border-transparent text-slate-400 hover:border-slate-200"
                                         }`}
                                 >
                                     <div className="relative flex items-center justify-center">
@@ -806,8 +815,8 @@ const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, api
                                     onChange={(e) => setSelectedClassId(e.target.value)}
                                     disabled={!selectedLevel || (selectedLevel === 'HIGHERSECONDARY' && !selectedStream) || isLoading}
                                     className={`w-full border px-6 py-4 rounded-[1.5rem] text-sm font-semibold outline-none focus:ring-4 focus:ring-[#0BC48B]/10 focus:border-[#0BC48B] transition-all appearance-none cursor-pointer shadow-sm ${!selectedLevel || (selectedLevel === 'HIGHERSECONDARY' && !selectedStream) || isLoading
-                                            ? 'bg-slate-100 border-slate-100 text-slate-400 cursor-not-allowed'
-                                            : 'bg-slate-50/50 border-slate-100 text-slate-800 focus:bg-white'
+                                        ? 'bg-slate-100 border-slate-100 text-slate-400 cursor-not-allowed'
+                                        : 'bg-slate-50/50 border-slate-100 text-slate-800 focus:bg-white'
                                         }`}
                                 >
                                     <option value="">{
@@ -864,8 +873,8 @@ const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, api
                                         onChange={(e) => setSelectedSubjectId(e.target.value)}
                                         disabled={!selectedClassId || isLoading}
                                         className={`w-full border px-6 py-4 rounded-[1.5rem] text-sm font-semibold outline-none focus:ring-4 focus:ring-[#0BC48B]/10 focus:border-[#0BC48B] transition-all appearance-none cursor-pointer shadow-sm ${!selectedClassId || isLoading
-                                                ? 'bg-slate-100 border-slate-100 text-slate-400 cursor-not-allowed'
-                                                : 'bg-slate-50/50 border-slate-100 text-slate-800 focus:bg-white'
+                                            ? 'bg-slate-100 border-slate-100 text-slate-400 cursor-not-allowed'
+                                            : 'bg-slate-50/50 border-slate-100 text-slate-800 focus:bg-white'
                                             }`}
                                     >
                                         <option value="">{
@@ -900,8 +909,8 @@ const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, api
                                             onChange={(e) => setSelectedTeacherId(e.target.value)}
                                             disabled={!selectedSubjectId || isLoading}
                                             className={`w-full border px-6 py-4 rounded-[1.5rem] text-sm font-semibold outline-none focus:ring-4 focus:ring-[#0BC48B]/10 focus:border-[#0BC48B] transition-all appearance-none cursor-pointer shadow-sm ${!selectedSubjectId || isLoading
-                                                    ? 'bg-slate-100 border-slate-100 text-slate-400 cursor-not-allowed'
-                                                    : 'bg-slate-50/50 border-slate-100 text-slate-800 focus:bg-white'
+                                                ? 'bg-slate-100 border-slate-100 text-slate-400 cursor-not-allowed'
+                                                : 'bg-slate-50/50 border-slate-100 text-slate-800 focus:bg-white'
                                                 }`}
                                         >
                                             <option value="">{
@@ -966,8 +975,8 @@ const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, api
                             onClick={handleMapWorkload}
                             disabled={!isFormValid}
                             className={`w-full px-8 py-4 rounded-[1.5rem] font-black text-sm flex items-center justify-center gap-2 shadow-lg transition-all mt-4 ${isFormValid
-                                    ? 'bg-slate-900 text-white hover:-translate-y-0.5 active:scale-95'
-                                    : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+                                ? 'bg-slate-900 text-white hover:-translate-y-0.5 active:scale-95'
+                                : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
                                 }`}
                         >
                             {mappingMode === 'subject' ? 'Map Workload' : 'Set Fixed Slot'}
@@ -1438,16 +1447,19 @@ const ClassTimetableGrid = ({ scheduleData, days, apiTimetable, onUpdate, classW
             <div className="min-w-[1000px]">
                 <div className="grid grid-cols-[140px_repeat(6,1fr)] gap-4 mb-6">
                     <div className="p-4">
-                        <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full text-center">Interactive Mode</p>
+                        <p className="text-[10px] font-black text-[#0BC48B] uppercase tracking-widest bg-[#0BC48B]/10 px-3 py-1 rounded-full text-center border border-[#0BC48B]/20">Interactive Mode</p>
                     </div>
                     {days.map(day => (
-                        <div key={day} className="p-5 bg-slate-900 rounded-[1.5rem] text-center font-black text-white text-xs tracking-widest uppercase shadow-xl shadow-slate-900/10">{day}</div>
+                        <div key={day} className="p-5 bg-slate-900 rounded-[1.5rem] text-center font-black text-white text-xs tracking-widest uppercase shadow-xl shadow-slate-900/10 border border-slate-800">
+                            {day}
+                        </div>
                     ))}
                 </div>
 
                 {Array.from({ length: periodsCount }).map((_, pIdx) => (
                     <div key={pIdx} className="grid grid-cols-[140px_repeat(6,1fr)] gap-4 mb-4">
-                        <div className="p-5 bg-slate-50 rounded-[1.5rem] flex flex-col items-center justify-center border border-slate-100 text-center shadow-sm font-black text-xs text-slate-600">
+                        <div className="p-5 bg-white rounded-[1.5rem] flex flex-col items-center justify-center border border-slate-100 text-center shadow-sm font-black text-xs text-slate-800 hover:border-[#0BC48B]/30 hover:bg-[#0BC48B]/5 transition-all">
+                            <span className="text-[8px] text-[#0BC48B] uppercase tracking-[0.2em] mb-1">Session</span>
                             Period {pIdx + 1}
                         </div>
                         {days.map(day => {
@@ -1463,12 +1475,26 @@ const ClassTimetableGrid = ({ scheduleData, days, apiTimetable, onUpdate, classW
                                     onDragStart={() => handleDragStart(day, pIdx, slot)}
                                     onDragOver={(e) => e.preventDefault()}
                                     onDrop={() => handleDrop(day, pIdx)}
-                                    className={`p-5 rounded-[1.8rem] border flex flex-col justify-center items-center text-center transition-all cursor-move ${isDrill ? 'bg-emerald-50 border-emerald-100' : (isSpecial && !isSelfStudy ? 'bg-indigo-50 border-indigo-100' : isSelfStudy ? 'bg-amber-50/10 border-amber-100/30' : 'bg-white border-slate-100 hover:shadow-lg hover:border-[#0BC48B]/30')
+                                    className={`p-5 rounded-[1.8rem] border flex flex-col justify-center items-center text-center transition-all cursor-move ${isDrill
+                                            ? 'bg-[#0BC48B]/5 border-[#0BC48B]/20'
+                                            : (isSpecial && !isSelfStudy
+                                                ? 'bg-indigo-50 border-indigo-100'
+                                                : isSelfStudy
+                                                    ? 'bg-amber-50/30 border-amber-100/50'
+                                                    : 'bg-white border-slate-100 hover:shadow-lg hover:border-[#0BC48B]/30'
+                                            )
                                         } ${dragged?.day === day && dragged?.pIdx === pIdx ? 'opacity-30 scale-95' : ''}`}
                                 >
                                     {slot ? (
                                         <>
-                                            <span className={`font-black text-xs tracking-tight ${isDrill ? 'text-emerald-600' : (isSpecial && !isSelfStudy ? 'text-indigo-600' : isSelfStudy ? 'text-amber-600' : 'text-slate-800')}`}>{slot.subject}</span>
+                                            <span className={`font-black text-xs tracking-tight ${isDrill
+                                                    ? 'text-[#0BC48B]'
+                                                    : (isSpecial && !isSelfStudy
+                                                        ? 'text-indigo-600'
+                                                        : isSelfStudy
+                                                            ? 'text-amber-600'
+                                                            : 'text-slate-800')
+                                                }`}>{slot.subject}</span>
                                             <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-2">{slot.teacher_name === 'N/A' || !slot.teacher_name ? 'Auto-Filled' : slot.teacher_name}</span>
                                         </>
                                     ) : (

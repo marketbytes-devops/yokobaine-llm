@@ -217,7 +217,7 @@ export const SchoolStructureModule = () => {
                         )}
 
                         <InputGroup 
-                            label="Section Identifier" 
+                            label="Division" 
                             placeholder="e.g., A or Jupiter" 
                             type="text" 
                             value={formData.section}
@@ -377,7 +377,7 @@ const ClassCard = ({ data, onEdit, onDelete, selectedLevel }) => {
                 </div>
 
                 <div className="text-right">
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Max Capacity</p>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Students</p>
                     <div className="flex items-center gap-3">
                         <span className="text-lg font-black text-slate-900">{capacity}</span>
                     </div>

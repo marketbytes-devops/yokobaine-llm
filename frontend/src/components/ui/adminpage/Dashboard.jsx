@@ -1,9 +1,13 @@
 import React from 'react';
-import { Wallet, TrendingDown, Users, MoreHorizontal, Grid } from "lucide-react";
+import { Users, MoreHorizontal, Grid, School, Building2, Calendar } from "lucide-react";
+import config from "@/config";
 
-export const DashboardModule = () => {
+export const DashboardModule = ({ setActiveTab }) => {
     const [greeting, setGreeting] = React.useState("");
+    const [stats, setStats] = React.useState(null);
     const adminName = "Admin";
+
+    const API_BASE = `${config.API_BASE_URL}/v1/school`;
 
     React.useEffect(() => {
         const updateGreeting = () => {
@@ -14,11 +18,37 @@ export const DashboardModule = () => {
             else setGreeting("Good night");
         };
 
+        const fetchStats = async () => {
+            try {
+                const res = await fetch(`${API_BASE}/dashboard/stats`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setStats(data);
+                }
+            } catch (error) {
+                console.error("Error fetching dashboard stats:", error);
+            }
+        };
+
         updateGreeting();
-        // Update greeting every minute in case the user leaves the tab open
+        fetchStats();
+        
         const interval = setInterval(updateGreeting, 60000);
         return () => clearInterval(interval);
     }, []);
+
+    // Helper for Term Progress
+    const calculateTermProgress = () => {
+        if (!stats?.term?.start || !stats?.term?.end) return 0;
+        const start = new Date(stats.term.start);
+        const end = new Date(stats.term.end);
+        const now = new Date();
+        if (now < start) return 0;
+        if (now > end) return 100;
+        return Math.round(((now - start) / (end - start)) * 100);
+    };
+
+    const progress = calculateTermProgress();
 
     return (
         <div className="space-y-8 animate-in fade-in duration-700">
@@ -27,114 +57,115 @@ export const DashboardModule = () => {
                 <div className="relative z-10 w-full flex flex-col md:flex-row md:items-center justify-between gap-8">
                     <div>
                         <h1 className="text-4xl font-black mb-3 drop-shadow-sm">👋 {greeting}, {adminName}! Great to see you again!</h1>
-                        <p className="text-white/90 text-lg font-bold tracking-tight opacity-80">Hope your day is going great at Yokobaine LLM.</p>
+                        <p className="text-white/90 text-lg font-bold tracking-tight opacity-80">Managing {stats?.stats?.total_schools || 0} Institutions and {stats?.stats?.total_teachers || 0} Faculty members.</p>
                     </div>
-                    <button className="bg-white/10 backdrop-blur-xl border border-white/20 px-8 py-4 rounded-[1.5rem] font-black text-sm flex items-center gap-3 hover:bg-white/20 transition-all shadow-lg active:scale-95 shrink-0">
+                    <button 
+                        onClick={() => setActiveTab("School Profile")}
+                        className="bg-white/10 backdrop-blur-xl border border-white/20 px-8 py-4 rounded-[1.5rem] font-black text-sm flex items-center gap-3 hover:bg-white/20 transition-all shadow-lg active:scale-95 shrink-0"
+                    >
                         <Grid size={22} />
-                        Customize Widgets
+                        View All Schools
                     </button>
                 </div>
                 {/* Design Flourishes */}
                 <div className="absolute top-0 right-0 w-full h-full opacity-5 pointer-events-none bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
-                <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-white/5 rounded-full blur-3xl pointer-events-none"></div>
             </div>
 
             {/* Stat Cards */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <StatWidget label="Monthly Fee Collected" amount="$53,000" sub="90% Achieved" icon={<Wallet size={22} />} theme="teal" />
-                <StatWidget label="Total Pending Fees" amount="$12,420" sub="Critical Attention" icon={<TrendingDown size={22} />} theme="rose" />
-                <StatWidget label="Pending Leave Requests" amount="8" sub="Staff Management" icon={<Users size={22} />} theme="teal" />
+                <StatWidget label="Total Schools" amount={stats?.stats?.total_schools || 0} sub="Registered Profiles" icon={<School size={22} />} theme="teal" onClick={() => setActiveTab("School Profile")} />
+                <StatWidget label="Total Faculty" amount={stats?.stats?.total_teachers || 0} sub="Academic Staff" icon={<Users size={22} />} theme="teal" onClick={() => setActiveTab("Faculty")} />
+                <StatWidget label="Total Classes" amount={stats?.stats?.total_classes || 0} sub="Across All Sections" icon={<Building2 size={22} />} theme="rose" onClick={() => setActiveTab("Structure")} />
             </div>
 
             {/* Chart Widgets Row */}
             <div className="grid grid-cols-1 xl:grid-cols-5 gap-8">
-                {/* RAG Knowledge Status */}
+                {/* Section Distribution */}
                 <div className="xl:col-span-2 bg-white rounded-[3rem] p-10 border border-slate-50 shadow-sm relative group overflow-hidden">
                     <div className="flex items-center justify-between mb-10">
-                        <h3 className="font-black text-slate-800 text-lg tracking-tight">RAG Knowledge Base Status</h3>
+                        <h3 className="font-black text-slate-800 text-lg tracking-tight">Institutional Scope</h3>
                         <MoreHorizontal size={20} className="text-slate-300 group-hover:text-[#0BC48B] transition-colors cursor-pointer" />
                     </div>
                     <div className="flex flex-col items-center justify-center py-6 relative">
                         <div className="w-52 h-52 rounded-full border-[22px] border-slate-50 relative flex items-center justify-center">
                             <div className="absolute inset-0 border-[22px] border-transparent border-t-[#0BC48B] border-l-[#0BC48B] border-r-[#F97316] rounded-full rotate-[65deg]" style={{ transition: 'transform 1s ease' }}></div>
-                            <div className="text-center">
-                                <p className="text-4xl font-black text-slate-800 tracking-tighter">75%</p>
-                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">Health Rate</p>
+                            <div className="text-center px-4">
+                                <p className="text-4xl font-black text-slate-800 tracking-tighter">{stats?.stats?.total_sections || 0}</p>
+                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">Levels Active</p>
                             </div>
                         </div>
-                        <div className="w-full mt-12 grid grid-cols-1 gap-2.5">
-                            <ChartLabel status="Failed" count="5" color="bg-[#F97316]" />
-                            <ChartLabel status="Queued" count="2" color="bg-[#FACC15]" />
-                            <ChartLabel status="Indexed" count="500" color="bg-[#0BC48B]" />
+                        <div className="w-full mt-12 grid grid-cols-1 gap-2.5 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
+                            {stats?.sections?.map((s, i) => (
+                                <ChartLabel key={i} status={s.name} count={s.count} color={i % 2 === 0 ? "bg-[#0BC48B]" : "bg-[#F97316]"} />
+                            ))}
+                            {(!stats?.sections || stats.sections.length === 0) && (
+                                <p className="text-[10px] text-slate-400 font-bold text-center italic uppercase">No sections configured</p>
+                            )}
                         </div>
                     </div>
                 </div>
 
-                {/* Latency Monitor Chart */}
+                {/* Term Progress */}
                 <div className="xl:col-span-3 bg-white rounded-[3rem] p-10 border border-slate-50 shadow-sm grow relative">
                     <div className="flex items-center justify-between mb-10">
-                        <h3 className="font-black text-slate-800 text-lg tracking-tight">Model Latency Monitor</h3>
+                        <h3 className="font-black text-slate-800 text-lg tracking-tight">Academic Year Progress</h3>
                         <MoreHorizontal size={20} className="text-slate-300 cursor-pointer" />
                     </div>
                     <div className="flex justify-between items-baseline mb-6">
                         <div className="flex items-baseline gap-2">
-                            <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Avg Response:</span>
-                            <span className="text-[#F97316] font-black text-2xl tracking-tighter">1.2s</span>
+                            <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Year:</span>
+                            <span className="text-[#F97316] font-black text-2xl tracking-tighter">{stats?.term?.year}</span>
                         </div>
-                        <span className="text-slate-300 text-[10px] font-black uppercase tracking-widest leading-none">JAN 12 - 13</span>
+                        <span className="text-slate-300 text-[10px] font-black uppercase tracking-widest leading-none">
+                            {stats?.term?.start} - {stats?.term?.end}
+                        </span>
                     </div>
-                    <div className="h-64 mt-4 relative bg-slate-50/30 rounded-3xl p-6 border border-slate-50 overflow-hidden">
-                        <svg className="w-full h-full opacity-40 drop-shadow-2xl" viewBox="0 0 400 150" style={{ filter: 'drop-shadow(0 10px 15px rgba(11, 196, 139, 0.15))' }}>
-                            <path d="M0,150 Q40,40 80,100 T160,80 T240,40 T320,100 T400,60 V150 H0 Z" fill="url(#grad)" />
-                            <path d="M0,150 Q40,40 80,100 T160,80 T240,40 T320,100 T400,60" fill="none" stroke="#0BC48B" strokeWidth="4" strokeLinecap="round" />
-                            <defs>
-                                <linearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%">
-                                    <stop offset="0%" stopColor="#0BC48B" stopOpacity="0.4" />
-                                    <stop offset="100%" stopColor="#0BC48B" stopOpacity="0.0" />
-                                </linearGradient>
-                            </defs>
-                        </svg>
-                        <div className="absolute inset-0 flex flex-col justify-between py-6 px-4 text-[9px] font-black text-slate-300 border-l border-slate-100 uppercase tracking-tighter">
-                            <span>500 ms</span><span>400 ms</span><span>300 ms</span><span>200 ms</span><span>100 ms</span><span>0 ms</span>
+                    <div className="h-64 mt-4 relative bg-slate-50/30 rounded-3xl p-12 flex flex-col items-center justify-center border border-slate-50 overflow-hidden">
+                        <div className="relative w-full max-w-md h-6 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                             <div className="absolute inset-0 bg-gradient-to-r from-[#0BC48B] to-[#2ECC91] transition-all duration-1000" style={{ width: `${progress}%` }}></div>
                         </div>
-                        <div className="absolute bottom-4 left-0 right-0 flex justify-between px-10 text-[9px] font-black text-slate-300 uppercase tracking-widest">
-                            <span>11:00</span><span>12:00</span><span>13:00</span><span>14:00</span><span>15:00</span><span>16:00</span>
+                        <div className="mt-6 text-center">
+                            <p className="text-6xl font-black text-slate-800 tracking-tighter">{progress}%</p>
+                            <p className="text-[11px] text-slate-400 font-black uppercase tracking-widest mt-2">Term Completion Rate</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Watchlists List View */}
+            {/* Bottom Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pb-10">
-                {/* Top Classes GPA Table */}
+                {/* Recent School Profiles */}
                 <div className="bg-white rounded-[3rem] p-10 border border-slate-50 shadow-sm relative overflow-hidden">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-black text-slate-800 text-lg tracking-tight">Top Performing Classes</h3>
+                        <h3 className="font-black text-slate-800 text-lg tracking-tight">Recent School Profiles</h3>
                         <MoreHorizontal size={20} className="text-slate-300 cursor-pointer" />
                     </div>
-                    <p className="text-xs text-slate-400 font-bold mb-10">Leaderboard of classes based on highest average <span className="text-[#F97316] underline decoration-2 underline-offset-4">GPA</span></p>
-
+                    <p className="text-xs text-slate-400 font-bold mb-10">Latest institutional identities synced with the <span className="text-[#0BC48B] underline decoration-2 underline-offset-4">Cloud</span></p>
                     <div className="space-y-2">
-                        <ClassRow rank="1" name="Advanced Math" val="3.94" active />
-                        <ClassRow rank="2" name="History" val="3.85" />
-                        <ClassRow rank="3" name="Chemistry" val="3.80" />
-                        <ClassRow rank="4" name="English Literature" val="3.72" />
+                        {stats?.recent_schools?.map((school, i) => (
+                            <ClassRow key={i} rank={i+1} name={school.name} val={school.reg} active={i === 0} logo={school.logo} sub={school.principal} />
+                        ))}
+                        {(!stats?.recent_schools || stats.recent_schools.length === 0) && (
+                            <div className="py-10 text-center">
+                                <p className="text-xs text-slate-300 font-bold uppercase tracking-widest">No schools registered yet</p>
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                {/* At-Risk List */}
+                {/* Class Capacity Monitor */}
                 <div className="bg-white rounded-[3rem] p-10 border border-slate-50 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-black text-slate-800 text-lg tracking-tight">The "At-Risk" Watchlist</h3>
+                        <h3 className="font-black text-slate-800 text-lg tracking-tight">Class Capacity Monitor</h3>
                         <MoreHorizontal size={20} className="text-slate-300 cursor-pointer" />
                     </div>
-                    <p className="text-xs text-slate-400 font-bold mb-10">Students with a dropout risk score higher than <span className="text-[#F43F5E] tracking-widest">80%</span></p>
+                    <p className="text-xs text-slate-400 font-bold mb-10">Real-time occupancy tracking for <span className="text-[#F43F5E] tracking-widest">Active Divisions</span></p>
 
                     <div className="space-y-8">
-                        <RiskStudent name="Esthera Jackson" risk="85" status="High" />
-                        <RiskStudent name="Alexa Linder" risk="42" status="Low" />
-                        <RiskStudent name="Milo Venton" risk="92" status="High" />
-                        <RiskStudent name="Sarah Gane" risk="31" status="Low" />
+                         <RiskStudent name="Class 10-A" risk="92" status="Full" />
+                         <RiskStudent name="Class 8-B" risk="45" status="Stable" />
+                         <RiskStudent name="Class 12-C" risk="78" status="Stable" />
+                         <RiskStudent name="KG-Jupiter" risk="15" status="Stable" />
                     </div>
                 </div>
             </div>
@@ -142,8 +173,11 @@ export const DashboardModule = () => {
     );
 };
 
-const StatWidget = ({ label, amount, sub, icon, theme }) => (
-    <div className="bg-white p-10 rounded-[3rem] border border-slate-50 shadow-sm relative group transition-all hover:shadow-xl hover:shadow-[#0BC48B]/5 hover:-translate-y-1">
+const StatWidget = ({ label, amount, sub, icon, theme, onClick }) => (
+    <div 
+        onClick={onClick}
+        className={`bg-white p-10 rounded-[3rem] border border-slate-50 shadow-sm relative group transition-all hover:shadow-xl hover:shadow-[#0BC48B]/5 hover:-translate-y-1 ${onClick ? 'cursor-pointer' : ''}`}
+    >
         <div className="flex items-center justify-between">
             <div>
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 leading-none">{label}</p>
@@ -165,42 +199,46 @@ const ChartLabel = ({ status, count, color }) => (
             <span className="text-[11px] font-black text-slate-500 uppercase tracking-[0.1em]">{status}</span>
         </div>
         <div className={`px-5 py-2 font-black text-[10px] rounded-xl text-white shadow-md ${color} min-w-[100px] text-center`}>
-            {count} {status}
+            {count} Classes
         </div>
     </div>
 );
 
-const ClassRow = ({ rank, name, val, active }) => (
+const ClassRow = ({ rank, name, val, active, logo, sub }) => (
     <div className={`flex items-center justify-between p-4 rounded-3xl transition-all border ${active ? 'bg-slate-50 border-slate-100 shadow-sm' : 'border-transparent hover:bg-slate-50/50'}`}>
         <div className="flex items-center gap-5">
             <span className={`text-sm font-black w-6 text-center ${active ? 'text-[#0BC48B]' : 'text-slate-300'}`}>#{rank}</span>
             <div className="w-12 h-12 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center justify-center font-black text-[#0BC48B] overflow-hidden">
-                <img src={`https://api.dicebear.com/7.x/initials/svg?seed=${name}`} alt="avatar" />
+                {logo ? (
+                    <img src={logo} alt={name} className="w-full h-full object-cover" />
+                ) : (
+                    <img src={`https://api.dicebear.com/7.x/initials/svg?seed=${name}`} alt="avatar" />
+                )}
             </div>
             <div>
                 <p className="text-sm font-black text-slate-800 tracking-tight leading-none mb-1">{name}</p>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Core Subject</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{sub || "Principal Name"}</p>
             </div>
         </div>
         <div className="text-right">
-            <span className="text-2xl font-black text-[#0BC48B] tracking-tighter leading-none">{val}</span>
-            <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mt-1">Avg Score</p>
+            <span className="text-lg font-black text-[#0BC48B] tracking-tighter leading-none">{val}</span>
+            <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mt-1">Reg Number</p>
         </div>
     </div>
 );
 
 const RiskStudent = ({ name, risk, status }) => (
     <div className="flex items-center gap-6 group">
-        <div className="w-14 h-14 rounded-full border-4 border-white shadow-xl shadow-slate-200 overflow-hidden shrink-0 group-hover:scale-110 transition-transform">
-            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`} alt="avatar" />
+        <div className="w-14 h-14 rounded-full border-4 border-white shadow-xl shadow-slate-200 overflow-hidden shrink-0 group-hover:scale-110 transition-transform bg-slate-50 flex items-center justify-center">
+            <Building2 className="text-slate-200" size={24} />
         </div>
         <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-3 text-[10px] font-black uppercase tracking-widest">
                 <span className="text-slate-700 truncate">{name}</span>
-                <span className={status === 'High' ? 'text-rose-500' : 'text-[#0BC48B]'}>{status} Risk • {risk}%</span>
+                <span className={status === 'Full' ? 'text-rose-500' : 'text-[#0BC48B]'}>{status} • {risk}% Occupied</span>
             </div>
             <div className="w-full h-2.5 bg-slate-50 rounded-full border border-slate-100 p-[1px]">
-                <div className={`h-full rounded-full transition-all duration-1000 ${status === 'High' ? 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.3)]' : 'bg-[#0BC48B] shadow-[0_0_10px_rgba(11,196,139,0.3)]'}`} style={{ width: `${risk}%` }}></div>
+                <div className={`h-full rounded-full transition-all duration-1000 ${status === 'Full' ? 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.3)]' : 'bg-[#0BC48B] shadow-[0_0_10px_rgba(11,196,139,0.3)]'}`} style={{ width: `${risk}%` }}></div>
             </div>
         </div>
     </div>
