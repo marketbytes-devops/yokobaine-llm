@@ -19,6 +19,11 @@ class FeeStructureBase(BaseModel):
     category_name: str
     amount: float
     frequency: str
+    due_date: Optional[date] = None
+    due_day: Optional[int] = None
+    invoice_day: Optional[int] = None
+    month_from: Optional[str] = None
+    month_to: Optional[str] = None
 
 class FeeStructureCreate(FeeStructureBase):
     pass
@@ -39,6 +44,17 @@ class StudentInvoiceCreate(StudentInvoiceBase):
     pass
 
 class StudentInvoiceResponse(StudentInvoiceBase):
+    id: int
+    class Config:
+        from_attributes = True
+
+class FeeFrequencyBase(BaseModel):
+    name: str
+
+class FeeFrequencyCreate(FeeFrequencyBase):
+    pass
+
+class FeeFrequencyResponse(FeeFrequencyBase):
     id: int
     class Config:
         from_attributes = True

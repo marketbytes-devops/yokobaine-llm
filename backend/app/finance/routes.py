@@ -61,3 +61,27 @@ def create_student_invoice(invoice: schemas.StudentInvoiceCreate, db: Session = 
     db.commit()
     db.refresh(new_inv)
     return new_inv
+
+@router.get("/frequencies", response_model=List[schemas.FeeFrequencyResponse])
+def get_frequencies(db: Session = Depends(get_db)):
+    return db.query(models.FeeFrequency).all()
+
+@router.post("/frequencies", response_model=schemas.FeeFrequencyResponse)
+def create_frequency(freq: schemas.FeeFrequencyCreate, db: Session = Depends(get_db)):
+    db_freq = db.query(models.FeeFrequency).filter(models.FeeFrequency.name == freq.name).first()
+    if db_freq:
+        raise HTTPException(status_code=400, detail="Frequency already exists")
+    new_freq = models.FeeFrequency(name=freq.name)
+    db.add(new_freq)
+    db.commit()
+    db.refresh(new_freq)
+    return new_freq
+
+@router.delete("/frequencies/{freq_id}")
+def delete_frequency(freq_id: int, db: Session = Depends(get_db)):
+    db_freq = db.query(models.FeeFrequency).filter(models.FeeFrequency.id == freq_id).first()
+    if not db_freq:
+        raise HTTPException(status_code=404, detail="Frequency not found")
+    db.delete(db_freq)
+    db.commit()
+    return {"ok": True}
