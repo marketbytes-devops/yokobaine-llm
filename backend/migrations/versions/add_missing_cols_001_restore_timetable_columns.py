@@ -17,12 +17,20 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Add columns that were accidentally dropped or missing in the database
-    op.add_column('timetable_configs', sa.Column('duration', sa.Integer(), nullable=True, server_default='45'))
-    op.add_column('timetable_configs', sa.Column('start_time', sa.String(length=20), nullable=True, server_default='08:30 AM'))
-    op.add_column('timetable_configs', sa.Column('end_time', sa.String(length=20), nullable=True, server_default='03:30 PM'))
-    op.add_column('timetable_configs', sa.Column('breaks', sa.JSON(), nullable=True))
-    op.add_column('timetable_configs', sa.Column('drill_periods', sa.JSON(), nullable=True))
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    columns = [c['name'] for c in inspector.get_columns('timetable_configs')]
+    
+    if 'duration' not in columns:
+        op.add_column('timetable_configs', sa.Column('duration', sa.Integer(), nullable=True, server_default='45'))
+    if 'start_time' not in columns:
+        op.add_column('timetable_configs', sa.Column('start_time', sa.String(length=20), nullable=True, server_default='08:30 AM'))
+    if 'end_time' not in columns:
+        op.add_column('timetable_configs', sa.Column('end_time', sa.String(length=20), nullable=True, server_default='03:30 PM'))
+    if 'breaks' not in columns:
+        op.add_column('timetable_configs', sa.Column('breaks', sa.JSON(), nullable=True))
+    if 'drill_periods' not in columns:
+        op.add_column('timetable_configs', sa.Column('drill_periods', sa.JSON(), nullable=True))
 
 
 def downgrade() -> None:

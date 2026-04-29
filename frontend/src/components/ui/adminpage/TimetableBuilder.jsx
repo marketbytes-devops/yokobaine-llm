@@ -76,9 +76,12 @@ export const TimetableBuilderModule = () => {
             // Map backend drill_periods to frontend drillPeriods
             const adapted = data.map(t => ({
                 ...t,
+                days: t.days || [],
+                breaks: t.breaks || [],
+                fixed_slots: t.fixed_slots || [],
                 startTime: t.start_time || "08:30 AM",
                 endTime: t.end_time || "03:30 PM",
-                breaksCount: t.breaks ? t.breaks.length : 0
+                breaksCount: (t.breaks || []).length
             }));
             setSavedTimes(adapted);
         } catch (err) {
@@ -213,7 +216,7 @@ export const TimetableBuilderModule = () => {
                         />
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in slide-in-from-left-4 duration-500">
-                            {savedTimes.map(t => (
+                            {(savedTimes || []).map(t => (
                                 <div key={t.id} className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/40 relative group">
                                     <button onClick={() => handleDeleteSaved(t.id)} className="absolute top-6 right-6 p-2 rounded-full bg-rose-50 text-rose-400 hover:bg-rose-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 shadow-sm">
                                         <Trash2 size={16} />
@@ -229,7 +232,7 @@ export const TimetableBuilderModule = () => {
                                         </div>
                                         <div className="flex items-center justify-between">
                                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Days</span>
-                                            <span className="text-sm font-black text-slate-800">{t.days.length} Days</span>
+                                            <span className="text-sm font-black text-slate-800">{(t.days || []).length} Days</span>
                                         </div>
                                     </div>
                                     <div className="mt-8 flex gap-3">
@@ -401,7 +404,7 @@ const StepAGlobalTime = ({ data, setData, onNext, onSave, isExisting }) => {
                                             className="w-full bg-transparent text-sm font-black text-slate-800 outline-none cursor-pointer"
                                         >
                                             <option value="All">All Days</option>
-                                            {data.days.map(d => <option key={d} value={d}>{d}</option>)}
+                                            {(data.days || []).map(d => <option key={d} value={d}>{d}</option>)}
                                         </select>
                                     </div>
                                     <div>
@@ -433,7 +436,7 @@ const StepAGlobalTime = ({ data, setData, onNext, onSave, isExisting }) => {
                             <button onClick={addBreak} className="text-[10px] font-black text-[#0BC48B] uppercase tracking-widest flex items-center gap-1 hover:text-[#09A173] transition-colors"><Plus size={12} /> Add Break</button>
                         </div>
                         <div className="space-y-4">
-                            {data.breaks.map((b) => (
+                            {(data.breaks || []).map((b) => (
                                 <div key={b.id} className="flex items-center gap-4 bg-slate-50/50 p-4 rounded-3xl border border-slate-50 relative group">
                                     <TimeSelectGroup label="Start Time" value={b.start} onChange={(val) => updateBreak(b.id, 'start', val)} />
                                     <TimeSelectGroup label="End Time" value={b.end} onChange={(val) => updateBreak(b.id, 'end', val)} />
@@ -589,7 +592,7 @@ const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, api
 
                 // Map API response to frontend structure
                 // Ensure type safety when finding teachers
-                const mapped = data.map(item => {
+                const mapped = (data || []).map(item => {
                     const teacherObj = teachers.find(t => t.id === item.teacher_id);
                     return {
                         id: item.id,
@@ -916,7 +919,7 @@ const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, api
                                             <option value="">{
                                                 isLoading ? "Loading..." : !selectedSubjectId ? "Select subject..." : "Select Teacher..."
                                             }</option>
-                                            {filteredTeachers.map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
+                                            {(filteredTeachers || []).map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
                                         </select>
                                         <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                                             <ChevronDown size={18} />
@@ -952,7 +955,7 @@ const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, api
                                         className="w-full bg-slate-50/50 border border-slate-100 px-6 py-4 rounded-[1.5rem] text-sm font-semibold outline-none focus:ring-4 focus:ring-[#0BC48B]/10 focus:border-[#0BC48B]"
                                     >
                                         <option value="">Select Day</option>
-                                        {currentConfig?.days?.map(d => <option key={d} value={d}>{d}</option>)}
+                                        {(currentConfig?.days || []).map(d => <option key={d} value={d}>{d}</option>)}
                                     </select>
                                 </div>
                                 <div className="w-full">
@@ -1094,7 +1097,7 @@ const StepCConstraints = ({ onNext, onPrev, apiSchool }) => {
                             className="w-full bg-slate-50 border border-slate-100 px-6 py-4 rounded-[1.5rem] text-sm font-semibold text-slate-800 outline-none"
                         >
                             <option value="">Select a teacher...</option>
-                            {teachers.map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
+                            {(teachers || []).map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
                         </select>
                     </div>
 
@@ -1103,7 +1106,7 @@ const StepCConstraints = ({ onNext, onPrev, apiSchool }) => {
                             <p className="text-[10px] font-black uppercase text-[#0BC48B] tracking-widest">Mark Slot as Unavailable</p>
                             <div className="grid grid-cols-2 gap-4">
                                 <select value={selectedSlot.day} onChange={e => setSelectedSlot({ ...selectedSlot, day: e.target.value })} className="bg-white border-slate-100 px-4 py-3 rounded-2xl text-sm font-bold outline-none border">
-                                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <option key={d} value={d}>{d}</option>)}
+                                    {(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']).map(d => <option key={d} value={d}>{d}</option>)}
                                 </select>
                                 <input type="number" min="1" max="8" value={selectedSlot.period} onChange={e => setSelectedSlot({ ...selectedSlot, period: parseInt(e.target.value) })} className="bg-white border-slate-100 px-4 py-3 rounded-2xl text-sm font-bold outline-none border" placeholder="Period No." />
                             </div>
@@ -1309,7 +1312,7 @@ const StepDOutputGrid = ({ onPrev, level, stream, apiTimetable, apiSchool, workl
             <div className="mb-10 p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100">
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Select Classes to Generate For:</label>
                 <div className="flex flex-wrap gap-3">
-                    {classes.map(c => (
+                    {(classes || []).map(c => (
                         <button
                             key={c.id}
                             onClick={() => toggleClassSelection(c.id)}
