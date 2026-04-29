@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = 'add_missing_cols_001'
-down_revision: Union[str, Sequence[str], None] = '6b8a0b54a08e'
+down_revision: Union[str, Sequence[str], None] = '4e588e685ea8'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
