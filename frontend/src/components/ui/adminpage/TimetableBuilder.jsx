@@ -61,13 +61,7 @@ export const TimetableBuilderModule = () => {
             });
         } else {
             setEditingConfigId(null);
-            // Clear ID if no existing config found to prevent stale IDs (e.g. after deletion)
-            if (globalTime.id) {
-                setGlobalTime(prev => {
-                    const { id, ...rest } = prev;
-                    return rest;
-                });
-            }
+            // Optional: reset to defaults if needed, but usually we leave current values
         }
     }, [globalTime.level, globalTime.stream, savedTimes, subTab]);
 
@@ -82,12 +76,9 @@ export const TimetableBuilderModule = () => {
             // Map backend drill_periods to frontend drillPeriods
             const adapted = data.map(t => ({
                 ...t,
-                days: t.days || [],
-                breaks: t.breaks || [],
-                fixed_slots: t.fixed_slots || [],
                 startTime: t.start_time || "08:30 AM",
                 endTime: t.end_time || "03:30 PM",
-                breaksCount: (t.breaks || []).length
+                breaksCount: t.breaks ? t.breaks.length : 0
             }));
             setSavedTimes(adapted);
         } catch (err) {
@@ -222,7 +213,7 @@ export const TimetableBuilderModule = () => {
                         />
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in slide-in-from-left-4 duration-500">
-                            {(savedTimes || []).map(t => (
+                            {savedTimes.map(t => (
                                 <div key={t.id} className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/40 relative group">
                                     <button onClick={() => handleDeleteSaved(t.id)} className="absolute top-6 right-6 p-2 rounded-full bg-rose-50 text-rose-400 hover:bg-rose-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 shadow-sm">
                                         <Trash2 size={16} />
@@ -238,7 +229,7 @@ export const TimetableBuilderModule = () => {
                                         </div>
                                         <div className="flex items-center justify-between">
                                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Days</span>
-                                            <span className="text-sm font-black text-slate-800">{(t.days || []).length} Days</span>
+                                            <span className="text-sm font-black text-slate-800">{t.days.length} Days</span>
                                         </div>
                                     </div>
                                     <div className="mt-8 flex gap-3">
@@ -267,7 +258,6 @@ export const TimetableBuilderModule = () => {
                 apiAcademics={API_BASE_ACADEMICS}
                 apiTimetable={API_BASE_TIMETABLE}
                 currentConfig={globalTime}
-                savedTimes={savedTimes}
             />}
             {step === 3 && <StepCConstraints onNext={() => setStep(4)} onPrev={() => setStep(2)} constraints={constraints} setConstraints={setConstraints} />}
             {step === 4 && <StepDOutputGrid
@@ -411,7 +401,7 @@ const StepAGlobalTime = ({ data, setData, onNext, onSave, isExisting }) => {
                                             className="w-full bg-transparent text-sm font-black text-slate-800 outline-none cursor-pointer"
                                         >
                                             <option value="All">All Days</option>
-                                            {(data.days || []).map(d => <option key={d} value={d}>{d}</option>)}
+                                            {data.days.map(d => <option key={d} value={d}>{d}</option>)}
                                         </select>
                                     </div>
                                     <div>
@@ -443,7 +433,7 @@ const StepAGlobalTime = ({ data, setData, onNext, onSave, isExisting }) => {
                             <button onClick={addBreak} className="text-[10px] font-black text-[#0BC48B] uppercase tracking-widest flex items-center gap-1 hover:text-[#09A173] transition-colors"><Plus size={12} /> Add Break</button>
                         </div>
                         <div className="space-y-4">
-                            {(data.breaks || []).map((b) => (
+                            {data.breaks.map((b) => (
                                 <div key={b.id} className="flex items-center gap-4 bg-slate-50/50 p-4 rounded-3xl border border-slate-50 relative group">
                                     <TimeSelectGroup label="Start Time" value={b.start} onChange={(val) => updateBreak(b.id, 'start', val)} />
                                     <TimeSelectGroup label="End Time" value={b.end} onChange={(val) => updateBreak(b.id, 'end', val)} />
@@ -476,7 +466,7 @@ const StepAGlobalTime = ({ data, setData, onNext, onSave, isExisting }) => {
     );
 };
 
-const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, apiAcademics, apiTimetable, currentConfig, savedTimes }) => {
+const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, apiAcademics, apiTimetable, currentConfig }) => {
     const [selectedLevel, setSelectedLevel] = useState(currentConfig?.level || '');
     const [selectedStream, setSelectedStream] = useState(currentConfig?.stream || '');
     const [selectedClassId, setSelectedClassId] = useState('');
@@ -500,15 +490,8 @@ const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, api
 
     const [filteredTeachers, setFilteredTeachers] = useState([]);
 
-    // Find the matching config for the currently selected level/stream in Step 2
-    // If not found in savedTimes, fallback to currentConfig (useful for new unsaved configs)
-    const effectiveConfig = (savedTimes || []).find(c => 
-        c.level === selectedLevel && 
-        (selectedLevel === "HIGHERSECONDARY" ? c.stream === selectedStream : true)
-    ) || (selectedLevel === currentConfig?.level && (!selectedStream || selectedStream === currentConfig?.stream) ? currentConfig : null);
-
     // Capacity Calculation
-    const totalCapacity = (effectiveConfig?.days?.length || 0) * (effectiveConfig?.periods || 0);
+    const totalCapacity = (currentConfig?.days?.length || 0) * (currentConfig?.periods || 0);
     const usedSlots = workloads.reduce((sum, w) => sum + (parseInt(w.periods) || 0), 0);
     const remainingSlots = totalCapacity - usedSlots;
 
@@ -606,7 +589,7 @@ const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, api
 
                 // Map API response to frontend structure
                 // Ensure type safety when finding teachers
-                const mapped = (data || []).map(item => {
+                const mapped = data.map(item => {
                     const teacherObj = teachers.find(t => t.id === item.teacher_id);
                     return {
                         id: item.id,
@@ -672,7 +655,7 @@ const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, api
                 teacher_id: parseInt(selectedTeacherId),
                 periods_per_week: parseInt(periods),
                 is_double: isDouble,
-                config_id: effectiveConfig?.id || null
+                config_id: currentConfig?.id || null
             };
         } else {
             if (!selectedSlot.day || !selectedSlot.period || !selectedSubjectId) return;
@@ -683,7 +666,7 @@ const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, api
                 periods_per_week: 1,
                 day: selectedSlot.day,
                 period: parseInt(selectedSlot.period),
-                config_id: effectiveConfig?.id || null
+                config_id: currentConfig?.id || null
             };
         }
 
@@ -933,7 +916,7 @@ const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, api
                                             <option value="">{
                                                 isLoading ? "Loading..." : !selectedSubjectId ? "Select subject..." : "Select Teacher..."
                                             }</option>
-                                            {(filteredTeachers || []).map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
+                                            {filteredTeachers.map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
                                         </select>
                                         <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                                             <ChevronDown size={18} />
@@ -942,7 +925,7 @@ const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, api
                                 </div>
                                 <div className="grid grid-cols-2 gap-6 items-end">
                                     <InputGroup
-                                        label="Periods Needed"
+                                        label="Periods/Week"
                                         type="number"
                                         value={periods}
                                         onChange={(e) => setPeriods(e.target.value)}
@@ -969,7 +952,7 @@ const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, api
                                         className="w-full bg-slate-50/50 border border-slate-100 px-6 py-4 rounded-[1.5rem] text-sm font-semibold outline-none focus:ring-4 focus:ring-[#0BC48B]/10 focus:border-[#0BC48B]"
                                     >
                                         <option value="">Select Day</option>
-                                        {(effectiveConfig?.days || []).map(d => <option key={d} value={d}>{d}</option>)}
+                                        {currentConfig?.days?.map(d => <option key={d} value={d}>{d}</option>)}
                                     </select>
                                 </div>
                                 <div className="w-full">
@@ -980,7 +963,7 @@ const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, api
                                         className="w-full bg-slate-50/50 border border-slate-100 px-6 py-4 rounded-[1.5rem] text-sm font-semibold outline-none focus:ring-4 focus:ring-[#0BC48B]/10 focus:border-[#0BC48B]"
                                     >
                                         <option value="">Select Period</option>
-                                        {Array.from({ length: effectiveConfig?.periods || 0 }, (_, i) => i + 1).map(p => (
+                                        {Array.from({ length: currentConfig?.periods || 0 }, (_, i) => i + 1).map(p => (
                                             <option key={p} value={p}>Period {p}</option>
                                         ))}
                                     </select>
@@ -1012,7 +995,7 @@ const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, api
                 <div className="bg-slate-50 rounded-[3rem] p-8 lg:p-10 border border-slate-100 shadow-inner overflow-y-auto max-h-[600px]">
                     <h3 className="font-black text-xl text-slate-800 tracking-tight mb-8">Mapped Workloads ({workloads.length})</h3>
                     <div className="space-y-4">
-                        {(workloads || []).map((w) => (
+                        {workloads.map((w) => (
                             <MappingCard
                                 key={w.id}
                                 cls={w.class_name || 'Mapped Class'}
@@ -1111,7 +1094,7 @@ const StepCConstraints = ({ onNext, onPrev, apiSchool }) => {
                             className="w-full bg-slate-50 border border-slate-100 px-6 py-4 rounded-[1.5rem] text-sm font-semibold text-slate-800 outline-none"
                         >
                             <option value="">Select a teacher...</option>
-                            {(teachers || []).map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
+                            {teachers.map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
                         </select>
                     </div>
 
@@ -1120,7 +1103,7 @@ const StepCConstraints = ({ onNext, onPrev, apiSchool }) => {
                             <p className="text-[10px] font-black uppercase text-[#0BC48B] tracking-widest">Mark Slot as Unavailable</p>
                             <div className="grid grid-cols-2 gap-4">
                                 <select value={selectedSlot.day} onChange={e => setSelectedSlot({ ...selectedSlot, day: e.target.value })} className="bg-white border-slate-100 px-4 py-3 rounded-2xl text-sm font-bold outline-none border">
-                                    {(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']).map(d => <option key={d} value={d}>{d}</option>)}
+                                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <option key={d} value={d}>{d}</option>)}
                                 </select>
                                 <input type="number" min="1" max="8" value={selectedSlot.period} onChange={e => setSelectedSlot({ ...selectedSlot, period: parseInt(e.target.value) })} className="bg-white border-slate-100 px-4 py-3 rounded-2xl text-sm font-bold outline-none border" placeholder="Period No." />
                             </div>
@@ -1326,7 +1309,7 @@ const StepDOutputGrid = ({ onPrev, level, stream, apiTimetable, apiSchool, workl
             <div className="mb-10 p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100">
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Select Classes to Generate For:</label>
                 <div className="flex flex-wrap gap-3">
-                    {(classes || []).map(c => (
+                    {classes.map(c => (
                         <button
                             key={c.id}
                             onClick={() => toggleClassSelection(c.id)}
@@ -1493,24 +1476,24 @@ const ClassTimetableGrid = ({ scheduleData, days, apiTimetable, onUpdate, classW
                                     onDragOver={(e) => e.preventDefault()}
                                     onDrop={() => handleDrop(day, pIdx)}
                                     className={`p-5 rounded-[1.8rem] border flex flex-col justify-center items-center text-center transition-all cursor-move ${isDrill
-                                            ? 'bg-[#0BC48B]/5 border-[#0BC48B]/20'
-                                            : (isSpecial && !isSelfStudy
-                                                ? 'bg-indigo-50 border-indigo-100'
-                                                : isSelfStudy
-                                                    ? 'bg-amber-50/30 border-amber-100/50'
-                                                    : 'bg-white border-slate-100 hover:shadow-lg hover:border-[#0BC48B]/30'
-                                            )
+                                        ? 'bg-[#0BC48B]/5 border-[#0BC48B]/20'
+                                        : (isSpecial && !isSelfStudy
+                                            ? 'bg-indigo-50 border-indigo-100'
+                                            : isSelfStudy
+                                                ? 'bg-amber-50/30 border-amber-100/50'
+                                                : 'bg-white border-slate-100 hover:shadow-lg hover:border-[#0BC48B]/30'
+                                        )
                                         } ${dragged?.day === day && dragged?.pIdx === pIdx ? 'opacity-30 scale-95' : ''}`}
                                 >
                                     {slot ? (
                                         <>
                                             <span className={`font-black text-xs tracking-tight ${isDrill
-                                                    ? 'text-[#0BC48B]'
-                                                    : (isSpecial && !isSelfStudy
-                                                        ? 'text-indigo-600'
-                                                        : isSelfStudy
-                                                            ? 'text-amber-600'
-                                                            : 'text-slate-800')
+                                                ? 'text-[#0BC48B]'
+                                                : (isSpecial && !isSelfStudy
+                                                    ? 'text-indigo-600'
+                                                    : isSelfStudy
+                                                        ? 'text-amber-600'
+                                                        : 'text-slate-800')
                                                 }`}>{slot.subject}</span>
                                             <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-2">{slot.teacher_name === 'N/A' || !slot.teacher_name ? 'Auto-Filled' : slot.teacher_name}</span>
                                         </>
