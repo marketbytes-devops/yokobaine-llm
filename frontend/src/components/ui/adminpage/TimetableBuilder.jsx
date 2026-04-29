@@ -61,7 +61,13 @@ export const TimetableBuilderModule = () => {
             });
         } else {
             setEditingConfigId(null);
-            // Optional: reset to defaults if needed, but usually we leave current values
+            // Clear ID if no existing config found to prevent stale IDs (e.g. after deletion)
+            if (globalTime.id) {
+                setGlobalTime(prev => {
+                    const { id, ...rest } = prev;
+                    return rest;
+                });
+            }
         }
     }, [globalTime.level, globalTime.stream, savedTimes, subTab]);
 
@@ -261,6 +267,7 @@ export const TimetableBuilderModule = () => {
                 apiAcademics={API_BASE_ACADEMICS}
                 apiTimetable={API_BASE_TIMETABLE}
                 currentConfig={globalTime}
+                savedTimes={savedTimes}
             />}
             {step === 3 && <StepCConstraints onNext={() => setStep(4)} onPrev={() => setStep(2)} constraints={constraints} setConstraints={setConstraints} />}
             {step === 4 && <StepDOutputGrid
@@ -469,7 +476,7 @@ const StepAGlobalTime = ({ data, setData, onNext, onSave, isExisting }) => {
     );
 };
 
-const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, apiAcademics, apiTimetable, currentConfig }) => {
+const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, apiAcademics, apiTimetable, currentConfig, savedTimes }) => {
     const [selectedLevel, setSelectedLevel] = useState(currentConfig?.level || '');
     const [selectedStream, setSelectedStream] = useState(currentConfig?.stream || '');
     const [selectedClassId, setSelectedClassId] = useState('');
@@ -493,8 +500,15 @@ const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, api
 
     const [filteredTeachers, setFilteredTeachers] = useState([]);
 
+    // Find the matching config for the currently selected level/stream in Step 2
+    // If not found in savedTimes, fallback to currentConfig (useful for new unsaved configs)
+    const effectiveConfig = (savedTimes || []).find(c => 
+        c.level === selectedLevel && 
+        (selectedLevel === "HIGHERSECONDARY" ? c.stream === selectedStream : true)
+    ) || (selectedLevel === currentConfig?.level && (!selectedStream || selectedStream === currentConfig?.stream) ? currentConfig : null);
+
     // Capacity Calculation
-    const totalCapacity = (currentConfig?.days?.length || 0) * (currentConfig?.periods || 0);
+    const totalCapacity = (effectiveConfig?.days?.length || 0) * (effectiveConfig?.periods || 0);
     const usedSlots = workloads.reduce((sum, w) => sum + (parseInt(w.periods) || 0), 0);
     const remainingSlots = totalCapacity - usedSlots;
 
@@ -658,7 +672,7 @@ const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, api
                 teacher_id: parseInt(selectedTeacherId),
                 periods_per_week: parseInt(periods),
                 is_double: isDouble,
-                config_id: currentConfig?.id || null
+                config_id: effectiveConfig?.id || null
             };
         } else {
             if (!selectedSlot.day || !selectedSlot.period || !selectedSubjectId) return;
@@ -669,7 +683,7 @@ const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, api
                 periods_per_week: 1,
                 day: selectedSlot.day,
                 period: parseInt(selectedSlot.period),
-                config_id: currentConfig?.id || null
+                config_id: effectiveConfig?.id || null
             };
         }
 
@@ -955,7 +969,7 @@ const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, api
                                         className="w-full bg-slate-50/50 border border-slate-100 px-6 py-4 rounded-[1.5rem] text-sm font-semibold outline-none focus:ring-4 focus:ring-[#0BC48B]/10 focus:border-[#0BC48B]"
                                     >
                                         <option value="">Select Day</option>
-                                        {(currentConfig?.days || []).map(d => <option key={d} value={d}>{d}</option>)}
+                                        {(effectiveConfig?.days || []).map(d => <option key={d} value={d}>{d}</option>)}
                                     </select>
                                 </div>
                                 <div className="w-full">
@@ -966,7 +980,7 @@ const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, api
                                         className="w-full bg-slate-50/50 border border-slate-100 px-6 py-4 rounded-[1.5rem] text-sm font-semibold outline-none focus:ring-4 focus:ring-[#0BC48B]/10 focus:border-[#0BC48B]"
                                     >
                                         <option value="">Select Period</option>
-                                        {Array.from({ length: currentConfig?.periods || 0 }, (_, i) => i + 1).map(p => (
+                                        {Array.from({ length: effectiveConfig?.periods || 0 }, (_, i) => i + 1).map(p => (
                                             <option key={p} value={p}>Period {p}</option>
                                         ))}
                                     </select>
@@ -998,7 +1012,7 @@ const StepBWorkload = ({ onNext, onPrev, workloads, setWorkloads, apiSchool, api
                 <div className="bg-slate-50 rounded-[3rem] p-8 lg:p-10 border border-slate-100 shadow-inner overflow-y-auto max-h-[600px]">
                     <h3 className="font-black text-xl text-slate-800 tracking-tight mb-8">Mapped Workloads ({workloads.length})</h3>
                     <div className="space-y-4">
-                        {workloads.map((w) => (
+                        {(workloads || []).map((w) => (
                             <MappingCard
                                 key={w.id}
                                 cls={w.class_name || 'Mapped Class'}
