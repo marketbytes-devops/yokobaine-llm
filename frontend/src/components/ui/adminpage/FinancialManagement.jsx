@@ -19,10 +19,19 @@ import {
 } from 'lucide-react';
 import config from "@/config";
 
+const ACADEMIC_MONTHS = ['Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May'];
+
 export const FinancialManagementModule = ({ initialTab = 'categories' }) => {
     const [activeTab, setActiveTab] = useState(initialTab);
     const [categories, setCategories] = useState([]);
+    const [frequencies, setFrequencies] = useState([
+        { id: 'f1', name: 'Yearly' },
+        { id: 'f2', name: 'Monthly' },
+        { id: 'f3', name: 'Quarterly' },
+        { id: 'f4', name: 'Half-Yearly' }
+    ]);
     const [structures, setStructures] = useState([]);
+    const [isFreqModalOpen, setIsFreqModalOpen] = useState(false);
 
     useEffect(() => {
         setActiveTab(initialTab);
@@ -30,6 +39,7 @@ export const FinancialManagementModule = ({ initialTab = 'categories' }) => {
 
     useEffect(() => {
         fetchCategories();
+        fetchFrequencies();
         fetchStructures();
     }, []);
 
@@ -38,6 +48,21 @@ export const FinancialManagementModule = ({ initialTab = 'categories' }) => {
             const res = await fetch(`${config.API_BASE_URL}/v1/finance/categories`);
             if (res.ok) setCategories(await res.json());
         } catch (e) { console.error("Failed to fetch categories", e); }
+    };
+
+    const fetchFrequencies = async () => {
+        try {
+            const res = await fetch(`${config.API_BASE_URL}/v1/finance/frequencies`);
+            if (res.ok) {
+                const data = await res.json();
+                // Merge DB frequencies with defaults, avoiding duplicates
+                setFrequencies(prev => {
+                    const existingNames = prev.map(f => f.name.toLowerCase());
+                    const newData = data.filter(f => !existingNames.includes(f.name.toLowerCase()));
+                    return [...prev, ...newData];
+                });
+            }
+        } catch (e) { console.error("Failed to fetch frequencies", e); }
     };
 
     const fetchStructures = async () => {
@@ -54,8 +79,6 @@ export const FinancialManagementModule = ({ initialTab = 'categories' }) => {
         "HIGH SCHOOL": ["Class 8", "Class 9", "Class 10"],
         "HIGHERSECONDARY": ["Class 11", "Class 12"]
     };
-
-    const frequencies = ["Yearly", "One-Time"];
 
     return (
         <div className="space-y-8 animate-in fade-in duration-700 w-full max-w-6xl mx-auto pb-10">
@@ -82,6 +105,13 @@ export const FinancialManagementModule = ({ initialTab = 'categories' }) => {
                         frequencies={frequencies}
                         structures={structures}
                         fetchStructures={fetchStructures}
+                        onAddFreq={() => setIsFreqModalOpen(true)}
+                    />
+                )}
+                {isFreqModalOpen && (
+                    <QuickFrequencyModal 
+                        onClose={() => setIsFreqModalOpen(false)} 
+                        onSuccess={fetchFrequencies} 
                     />
                 )}
                 {activeTab === 'collection' && (
@@ -186,16 +216,85 @@ const FeeCategories = ({ categories, fetchCategories }) => {
     );
 };
 
+// --- QUICK FREQUENCY MODAL ---
+const QuickFrequencyModal = ({ onClose, onSuccess }) => {
+    const [name, setName] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    const handleAdd = async () => {
+        if (!name.trim()) return;
+        setLoading(true);
+        try {
+            const res = await fetch(`${config.API_BASE_URL}/v1/finance/frequencies`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: name.trim() })
+            });
+            if (res.ok) {
+                onSuccess();
+                onClose();
+            } else {
+                const err = await res.json();
+                alert(err.detail || "Failed to add frequency");
+            }
+        } catch (e) { console.error(e); }
+        setLoading(false);
+    };
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={onClose} />
+            <div className="relative bg-white rounded-[2.5rem] w-full max-w-md p-10 shadow-2xl animate-in zoom-in-95 duration-300 border border-slate-100">
+                <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 mb-6">
+                    <Clock size={24} />
+                </div>
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight mb-2">New Frequency</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-8">Define a new payment cycle</p>
+                
+                <div className="space-y-6">
+                    <div>
+                        <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest mb-3 ml-1">Frequency Name</label>
+                        <input
+                            type="text"
+                            autoFocus
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            placeholder="e.g. Monthly"
+                            className="w-full bg-slate-50 border border-slate-100 px-6 py-5 rounded-[1.5rem] text-sm font-semibold text-slate-800 outline-none focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-600 transition-all"
+                        />
+                    </div>
+                    <div className="flex gap-4 pt-2">
+                        <button onClick={onClose} className="flex-1 px-6 py-4 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest text-slate-400 hover:bg-slate-50 transition-all">Cancel</button>
+                        <button 
+                            onClick={handleAdd}
+                            disabled={loading}
+                            className="flex-1 bg-indigo-600 text-white px-6 py-4 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-200 hover:-translate-y-1 active:scale-95 transition-all disabled:opacity-50"
+                        >
+                            {loading ? 'Adding...' : 'Add Frequency'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // --- PAGE 2: STRUCTURE CREATOR ---
-const StructureCreator = ({ levelConfigs, categories, frequencies, structures, fetchStructures }) => {
+const StructureCreator = ({ levelConfigs, categories, frequencies, structures, fetchStructures, onAddFreq }) => {
     const [selectedLevel, setSelectedLevel] = useState('LP');
     const [selectedClass, setSelectedClass] = useState(null);
     const [activeRowFrequencies, setActiveRowFrequencies] = useState({});
     const [form, setForm] = useState({
         category_name: '',
         amount: '',
-        frequency: 'Yearly'
+        frequency: 'Yearly',
+        due_date: '',
+        due_day: '10',
+        invoice_day: '1',
+        month_from: 'Jun',
+        month_to: 'Mar'
     });
+
 
     const handleAddStructure = async () => {
         if (!selectedClass || !form.category_name || !form.amount) {
@@ -208,7 +307,12 @@ const StructureCreator = ({ levelConfigs, categories, frequencies, structures, f
             class_name: selectedClass,
             category_name: form.category_name,
             amount: parseFloat(form.amount),
-            frequency: form.frequency
+            frequency: form.frequency,
+            due_date: ['Monthly', 'Quarterly', 'Half-Yearly'].includes(form.frequency) ? null : (form.due_date || null),
+            due_day: ['Monthly', 'Quarterly', 'Half-Yearly'].includes(form.frequency) ? (parseInt(form.due_day) || null) : null,
+            invoice_day: ['Monthly', 'Quarterly', 'Half-Yearly'].includes(form.frequency) ? (parseInt(form.invoice_day) || null) : null,
+            month_from: form.frequency === 'Monthly' ? form.month_from : null,
+            month_to: form.frequency === 'Monthly' ? form.month_to : null
         };
 
         try {
@@ -219,9 +323,11 @@ const StructureCreator = ({ levelConfigs, categories, frequencies, structures, f
             });
 
             if (res.ok) {
+                const savedEntry = await res.json();
                 fetchStructures();
+                // Explicitly set the active frequency to the one just saved
                 setActiveRowFrequencies(prev => ({ ...prev, [form.category_name]: form.frequency }));
-                setForm({ category_name: '', amount: '', frequency: 'Yearly' });
+                setForm({ ...form, category_name: '', amount: '', due_date: '' });
             }
         } catch (e) {
             console.error(e);
@@ -255,8 +361,8 @@ const StructureCreator = ({ levelConfigs, categories, frequencies, structures, f
                             setSelectedClass(null);
                         }}
                         className={`px-8 py-4 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-4 ${selectedLevel === level
-                                ? "bg-[#0BC48B] text-white shadow-lg shadow-[#0BC48B]/30 scale-105"
-                                : "bg-slate-900 text-slate-400 hover:text-white"
+                            ? "bg-[#0BC48B] text-white shadow-lg shadow-[#0BC48B]/30 scale-105"
+                            : "bg-slate-900 text-slate-400 hover:text-white"
                             }`}
                     >
                         <div className={`w-2 h-2 rounded-full ${selectedLevel === level ? "bg-white animate-pulse" : "bg-slate-600"}`} />
@@ -274,8 +380,8 @@ const StructureCreator = ({ levelConfigs, categories, frequencies, structures, f
                             key={cls}
                             onClick={() => setSelectedClass(cls)}
                             className={`w-full text-left p-6 rounded-[2rem] border transition-all flex items-center justify-between group ${selectedClass === cls
-                                    ? "bg-white border-[#0BC48B] shadow-xl shadow-slate-200"
-                                    : "bg-white/50 border-transparent hover:border-slate-200"
+                                ? "bg-white border-[#0BC48B] shadow-xl shadow-slate-200"
+                                : "bg-white/50 border-transparent hover:border-slate-200"
                                 }`}
                         >
                             <span className={`font-black text-sm transition-colors ${selectedClass === cls ? "text-slate-900" : "text-slate-500"}`}>{cls}</span>
@@ -305,7 +411,7 @@ const StructureCreator = ({ levelConfigs, categories, frequencies, structures, f
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+                            <div className="grid grid-cols-1 md:grid-cols-6 gap-6 items-end">
                                 <div className="md:col-span-1">
                                     <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest mb-3 ml-1">Fee Type</label>
                                     <div className="relative">
@@ -324,14 +430,23 @@ const StructureCreator = ({ levelConfigs, categories, frequencies, structures, f
                                 </div>
 
                                 <div className="md:col-span-1">
-                                    <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest mb-3 ml-1">Frequency</label>
+                                    <div className="flex justify-between items-center mb-3 ml-1">
+                                        <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest">Frequency</label>
+                                        <button 
+                                            onClick={onAddFreq}
+                                            className="w-5 h-5 bg-indigo-50 text-indigo-600 rounded-md flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+                                            title="Quick Add Frequency"
+                                        >
+                                            <Plus size={12} strokeWidth={3} />
+                                        </button>
+                                    </div>
                                     <div className="relative">
                                         <select
                                             value={form.frequency}
                                             onChange={(e) => setForm({ ...form, frequency: e.target.value })}
                                             className="w-full bg-slate-50 border border-slate-100 px-6 py-5 rounded-[1.8rem] text-sm font-semibold text-slate-800 outline-none focus:ring-8 focus:ring-[#0BC48B]/5 focus:border-[#0BC48B] transition-all appearance-none cursor-pointer"
                                         >
-                                            {frequencies.map(f => <option key={f} value={f}>{f}</option>)}
+                                            {frequencies.map(f => <option key={f.id} value={f.name}>{f.name}</option>)}
                                         </select>
                                         <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                                             <Clock size={16} />
@@ -346,14 +461,65 @@ const StructureCreator = ({ levelConfigs, categories, frequencies, structures, f
                                             type="number"
                                             value={form.amount}
                                             onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                                            placeholder="0.00"
-                                            className="w-full bg-slate-50 border border-slate-100 pl-14 pr-6 py-5 rounded-[1.8rem] text-sm font-black text-slate-800 outline-none focus:ring-8 focus:ring-[#0BC48B]/5 focus:border-[#0BC48B] transition-all shadow-sm"
+                                            placeholder="5000"
+                                            className="w-full bg-slate-50 border border-slate-100 px-6 py-5 rounded-[1.8rem] text-sm font-black text-slate-800 outline-none focus:ring-8 focus:ring-[#0BC48B]/5 focus:border-[#0BC48B] transition-all"
                                         />
-                                        <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400">
+                                        <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-[#0BC48B]">
                                             <IndianRupee size={16} />
                                         </div>
                                     </div>
                                 </div>
+
+                                <div className="md:col-span-1">
+                                    <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest mb-3 ml-1">
+                                        {['Monthly', 'Quarterly', 'Half-Yearly'].includes(form.frequency) ? 'Invoice Day' : 'Due Date'}
+                                    </label>
+                                    <div className="relative">
+                                        {['Monthly', 'Quarterly', 'Half-Yearly'].includes(form.frequency) ? (
+                                            <select
+                                                value={form.invoice_day}
+                                                onChange={(e) => setForm({ ...form, invoice_day: e.target.value })}
+                                                className="w-full bg-slate-50 border border-slate-100 px-6 py-5 rounded-[1.8rem] text-sm font-black text-slate-800 outline-none focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-600 transition-all appearance-none cursor-pointer"
+                                            >
+                                                <option value="">Day...</option>
+                                                {[...Array(31)].map((_, i) => (
+                                                    <option key={i+1} value={i+1}>{i+1}</option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <input
+                                                type="date"
+                                                value={form.due_date}
+                                                onChange={(e) => setForm({ ...form, due_date: e.target.value })}
+                                                className="w-full bg-slate-50 border border-slate-100 px-6 py-5 rounded-[1.8rem] text-sm font-black text-slate-800 outline-none focus:ring-8 focus:ring-[#0BC48B]/5 focus:border-[#0BC48B] transition-all shadow-sm cursor-pointer"
+                                            />
+                                        )}
+                                        <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                            <Calendar size={16} />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {['Monthly', 'Quarterly', 'Half-Yearly'].includes(form.frequency) && (
+                                    <div className="md:col-span-1 animate-in fade-in duration-300">
+                                        <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest mb-3 ml-1">Due Day</label>
+                                        <div className="relative">
+                                            <select
+                                                value={form.due_day}
+                                                onChange={(e) => setForm({ ...form, due_day: e.target.value })}
+                                                className="w-full bg-slate-50 border border-slate-100 px-6 py-5 rounded-[1.8rem] text-sm font-black text-slate-800 outline-none focus:ring-8 focus:ring-[#0BC48B]/5 focus:border-[#0BC48B] transition-all appearance-none cursor-pointer"
+                                            >
+                                                <option value="">Day...</option>
+                                                {[...Array(31)].map((_, i) => (
+                                                    <option key={i+1} value={i+1}>{i+1}</option>
+                                                ))}
+                                            </select>
+                                            <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-[#0BC48B]">
+                                                <Clock size={16} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
                                 <button
                                     onClick={handleAddStructure}
@@ -363,16 +529,66 @@ const StructureCreator = ({ levelConfigs, categories, frequencies, structures, f
                                 </button>
                             </div>
 
+                            {form.frequency === 'Monthly' && (
+                                <div className="mt-8 pt-8 border-t border-slate-50 flex flex-wrap items-center gap-8 animate-in slide-in-from-top-4 duration-500">
+                                    <div className="flex-1 min-w-[200px]">
+                                        <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest mb-3 ml-1">Fee Start Month</label>
+                                        <div className="relative">
+                                            <select
+                                                value={form.month_from}
+                                                onChange={(e) => setForm({ ...form, month_from: e.target.value })}
+                                                className="w-full bg-slate-50 border border-slate-100 px-6 py-5 rounded-[1.8rem] text-sm font-black text-slate-800 outline-none focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-600 transition-all appearance-none cursor-pointer"
+                                            >
+                                                {ACADEMIC_MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
+                                            </select>
+                                            <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-indigo-400">
+                                                <Calendar size={16} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center pt-8">
+                                        <div className="w-10 h-1px bg-slate-200" />
+                                        <ArrowRight className="text-slate-300 mx-2" size={16} />
+                                        <div className="w-10 h-1px bg-slate-200" />
+                                    </div>
+                                    <div className="flex-1 min-w-[200px]">
+                                        <label className="block text-[11px] font-black text-slate-800 uppercase tracking-widest mb-3 ml-1">Fee End Month</label>
+                                        <div className="relative">
+                                            <select
+                                                value={form.month_to}
+                                                onChange={(e) => setForm({ ...form, month_to: e.target.value })}
+                                                className="w-full bg-slate-50 border border-slate-100 px-6 py-5 rounded-[1.8rem] text-sm font-black text-slate-800 outline-none focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-600 transition-all appearance-none cursor-pointer"
+                                            >
+                                                {ACADEMIC_MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
+                                            </select>
+                                            <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-indigo-400">
+                                                <Calendar size={16} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="bg-indigo-50/50 p-6 rounded-[2rem] border border-indigo-100 flex items-center gap-4">
+                                        <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white">
+                                            <Clock size={18} />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Billing Cycle</p>
+                                            <p className="text-xs font-black text-indigo-900">{form.month_from} — {form.month_to}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="mt-12 space-y-4">
                                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Assigned Fee Entries</h4>
-                                <div className="overflow-hidden rounded-[2.5rem] border border-slate-100">
-                                    <table className="w-full border-collapse">
+                                <div className="overflow-x-auto rounded-[2.5rem] border border-slate-100">
+                                    <table className="w-full border-collapse min-w-[800px]">
                                         <thead>
                                             <tr className="bg-slate-50/50">
                                                 <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Type</th>
                                                 <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Frequency</th>
                                                 <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Amount</th>
-                                                <th className="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
+                                                <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Due Date</th>
+                                                <th className="px-8 py-5 text-right text-[10px] font-black text-rose-500 uppercase tracking-widest">Delete Entry</th>
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white">
@@ -402,11 +618,29 @@ const StructureCreator = ({ levelConfigs, categories, frequencies, structures, f
                                                         <td className="px-8 py-5">
                                                             <span className="text-sm font-black text-[#0BC48B] transition-all">₹{activeEntry.amount.toLocaleString('en-IN')}</span>
                                                         </td>
+                                                        <td className="px-8 py-5">
+                                                            <div className="flex flex-col gap-1">
+                                                                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">
+                                                                    Invoice: Day {activeEntry.invoice_day || activeEntry.due_day || 1}
+                                                                </span>
+                                                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                                                    {activeEntry.frequency === 'Monthly' 
+                                                                        ? `Due: Day ${activeEntry.due_day || 10} (${activeEntry.month_from} - ${activeEntry.month_to})` 
+                                                                        : ['Quarterly', 'Half-Yearly'].includes(activeEntry.frequency)
+                                                                            ? `Due: Day ${activeEntry.due_day || 10}`
+                                                                            : (activeEntry.due_date ? new Date(activeEntry.due_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'No Date')}
+                                                                </span>
+                                                            </div>
+                                                        </td>
                                                         <td className="px-8 py-5 text-right">
                                                             <button
-                                                                onClick={() => removeStructure(activeEntry.id)}
-                                                                className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all opacity-70 group-hover:opacity-100"
-                                                                title={`Delete ${activeEntry.frequency} entry`}
+                                                                onClick={() => {
+                                                                    if (window.confirm(`Are you sure you want to delete the ${activeEntry.frequency} entry for ${catName}?`)) {
+                                                                        removeStructure(activeEntry.id);
+                                                                    }
+                                                                }}
+                                                                className="w-10 h-10 flex items-center justify-center bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-xl transition-all shadow-sm"
+                                                                title="Delete Entry"
                                                             >
                                                                 <Trash2 size={16} />
                                                             </button>
@@ -416,7 +650,7 @@ const StructureCreator = ({ levelConfigs, categories, frequencies, structures, f
                                             })}
                                             {Object.keys(groupedStructures).length === 0 && (
                                                 <tr>
-                                                    <td colSpan="4" className="px-8 py-10 text-center">
+                                                    <td colSpan="5" className="px-8 py-10 text-center">
                                                         <p className="text-xs font-bold text-slate-300 uppercase tracking-widest">No fees assigned to this class yet</p>
                                                     </td>
                                                 </tr>
@@ -499,8 +733,8 @@ const FeeCollection = ({ levelConfigs, categories, structures }) => {
                             setSelectedDivision(null);
                         }}
                         className={`px-8 py-4 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-4 ${selectedLevel === level
-                                ? "bg-[#0BC48B] text-white shadow-lg shadow-[#0BC48B]/30 scale-105"
-                                : "bg-slate-900 text-slate-400 hover:text-white"
+                            ? "bg-[#0BC48B] text-white shadow-lg shadow-[#0BC48B]/30 scale-105"
+                            : "bg-slate-900 text-slate-400 hover:text-white"
                             }`}
                     >
                         <div className={`w-2 h-2 rounded-full ${selectedLevel === level ? "bg-white animate-pulse" : "bg-slate-600"}`} />
@@ -521,8 +755,8 @@ const FeeCollection = ({ levelConfigs, categories, structures }) => {
                                 setSelectedDivision(null);
                             }}
                             className={`w-full text-left p-6 rounded-[2rem] border transition-all flex items-center justify-between group ${selectedClass === cls
-                                    ? "bg-white border-[#0BC48B] shadow-xl shadow-slate-200"
-                                    : "bg-white/50 border-transparent hover:border-slate-200"
+                                ? "bg-white border-[#0BC48B] shadow-xl shadow-slate-200"
+                                : "bg-white/50 border-transparent hover:border-slate-200"
                                 }`}
                         >
                             <span className={`font-black text-sm transition-colors ${selectedClass === cls ? "text-slate-900" : "text-slate-500"}`}>{cls}</span>
@@ -621,7 +855,18 @@ const FeeCollection = ({ levelConfigs, categories, structures }) => {
 
                                                     if (selectedFeeType !== 'All') {
                                                         const duesData = structures.find(s => s.class_name === selectedClass && s.category_name === selectedFeeType);
-                                                        const duesAmount = duesData ? duesData.amount : 0;
+                                                        const baseAmount = duesData ? duesData.amount : 0;
+                                                        
+                                                        let duesAmount = baseAmount;
+                                                        if (duesData && duesData.frequency === 'Monthly') {
+                                                            const startIdx = ACADEMIC_MONTHS.indexOf(duesData.month_from || 'Jun');
+                                                            const endIdx = ACADEMIC_MONTHS.indexOf(duesData.month_to || 'May');
+                                                            const monthsCount = startIdx <= endIdx 
+                                                                ? (endIdx - startIdx + 1) 
+                                                                : (12 - startIdx + endIdx + 1);
+                                                            duesAmount = baseAmount * monthsCount;
+                                                        }
+                                                        
                                                         paid = studentPayments[selectedFeeType] || 0;
                                                         pending = duesAmount - paid;
                                                         status = pending <= 0 ? "Paid" : "Pending";

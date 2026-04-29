@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, UserPlus, FileText, Search, GraduationCap, Users, ChevronRight, ArrowLeft, ChevronLeft, Eye, Edit, User, Mail, Phone, Calendar, MapPin, Droplet, Hash, LogOut, Plus, Trash2, Wallet } from 'lucide-react';
+import { Save, UserPlus, FileText, Search, GraduationCap, Users, ChevronRight, ArrowLeft, ChevronLeft, Eye, Edit, User, Mail, Phone, Calendar, MapPin, Droplet, Hash, LogOut, Plus, Trash2, Wallet, CheckCircle2, RefreshCcw } from 'lucide-react';
 import config from "@/config";
 
 // Mock DB for frontend simulation with localStorage persistence
@@ -699,9 +699,15 @@ const StudentProfileView = ({ student, backAction, onEdit }) => {
     const [paymentAmounts, setPaymentAmounts] = useState({});
     const [paidAmounts, setPaidAmounts] = useState(student ? (globalMockPayments[student.id] || {}) : {});
     const [receipts, setReceipts] = useState(student ? (globalMockReceipts[student.id] || []) : []);
+    const [expandedStructures, setExpandedStructures] = useState([]);
 
-    const totalDuesOverall = structures.reduce((sum, s) => sum + s.amount, 0);
-    const totalPaidOverall = structures.reduce((sum, s) => sum + (paidAmounts[s.category_name] || 0), 0);
+    const ACADEMIC_MONTHS = ["Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May"];
+
+    const totalDuesOverall = expandedStructures.reduce((sum, s) => sum + s.amount, 0);
+    const totalPaidOverall = expandedStructures.reduce((sum, s) => {
+        const key = s.frequency === 'Monthly' ? `${s.category_name}_${s.month}` : s.category_name;
+        return sum + (paidAmounts[key] || 0);
+    }, 0);
     const totalRemainingOverall = totalDuesOverall - totalPaidOverall;
 
     useEffect(() => {
@@ -711,17 +717,21 @@ const StudentProfileView = ({ student, backAction, onEdit }) => {
         }
     }, [student]);
 
-    useEffect(() => {
-        if (isPaying && structures.length > 0) {
-            const initialAmounts = {};
-            structures.forEach(s => {
+    const startPayment = (prefillStruct = null) => {
+        const initialAmounts = {};
+        structures.forEach(s => {
+            if (prefillStruct && s.category_name === prefillStruct.category_name) {
+                const remaining = s.amount - (paidAmounts[s.category_name] || 0);
+                initialAmounts[s.category_name] = remaining > 0 ? remaining : '';
+            } else {
                 initialAmounts[s.category_name] = '';
-            });
-            setPaymentAmounts(initialAmounts);
-            setRemarks('');
-            setPaymentMethod('Cash');
-        }
-    }, [isPaying]);
+            }
+        });
+        setPaymentAmounts(initialAmounts);
+        setRemarks('');
+        setPaymentMethod('Cash');
+        setIsPaying(true);
+    };
 
     const fetchInvoices = async (studentId) => {
         try {
@@ -741,9 +751,68 @@ const StudentProfileView = ({ student, backAction, onEdit }) => {
                 const data = await res.json();
                 const studentStructures = data.filter(s => s.class_name === student.current_grade);
                 setStructures(studentStructures);
-                const initialAmounts = {};
+
+                // Visibility Logic: Check if a month has been invoiced yet
+                const now = new Date();
+                const currentMonth = now.toLocaleString('en-US', { month: 'short' });
+                const currentDay = now.getDate();
+                const currentAcademicIdx = ACADEMIC_MONTHS.indexOf(currentMonth);
+
+                const isInvoiced = (month, day) => {
+                    const targetIdx = ACADEMIC_MONTHS.indexOf(month);
+                    if (targetIdx < currentAcademicIdx) return true;
+                    if (targetIdx === currentAcademicIdx && currentDay >= (day || 1)) return true;
+                    return false;
+                };
+
+                // Expand structures based on frequency
+                let expanded = [];
                 studentStructures.forEach(s => {
-                    initialAmounts[s.category_name] = '';
+                    if (s.frequency === 'Monthly') {
+                        const startIdx = ACADEMIC_MONTHS.indexOf(s.month_from || 'Jun');
+                        const endIdx = ACADEMIC_MONTHS.indexOf(s.month_to || 'May');
+                        let monthsToGenerate = [];
+                        if (startIdx <= endIdx) {
+                            monthsToGenerate = ACADEMIC_MONTHS.slice(startIdx, endIdx + 1);
+                        } else {
+                            monthsToGenerate = [...ACADEMIC_MONTHS.slice(startIdx), ...ACADEMIC_MONTHS.slice(0, endIdx + 1)];
+                        }
+
+                        monthsToGenerate.forEach(m => {
+                            if (isInvoiced(m, s.invoice_day || s.due_day)) {
+                                expanded.push({ ...s, month: m, uniqueKey: `${s.category_name}_${m}` });
+                            }
+                        });
+                    } else if (s.frequency === 'Quarterly') {
+                        const qMonths = ['Jun', 'Sep', 'Dec', 'Mar'];
+                        qMonths.forEach((m, idx) => {
+                            if (isInvoiced(m, s.invoice_day || s.due_day)) {
+                                expanded.push({ ...s, month: `Q${idx+1} (${m})`, uniqueKey: `${s.category_name}_Q${idx+1}` });
+                            }
+                        });
+                    } else if (s.frequency === 'Half-Yearly') {
+                        const hMonths = ['Jun', 'Dec'];
+                        hMonths.forEach((m, idx) => {
+                            if (isInvoiced(m, s.invoice_day || s.due_day)) {
+                                expanded.push({ ...s, month: `H${idx+1} (${m})`, uniqueKey: `${s.category_name}_H${idx+1}` });
+                            }
+                        });
+                    } else {
+                        // Yearly or other
+                        if (s.due_date) {
+                            const d = new Date(s.due_date);
+                            if (now >= d) expanded.push({ ...s, uniqueKey: s.category_name });
+                        } else {
+                            // If no due date, assume invoiced at start of year (June)
+                            if (isInvoiced('Jun', 1)) expanded.push({ ...s, uniqueKey: s.category_name });
+                        }
+                    }
+                });
+                setExpandedStructures(expanded);
+
+                const initialAmounts = {};
+                expanded.forEach(s => {
+                    initialAmounts[s.uniqueKey] = '';
                 });
                 setPaymentAmounts(initialAmounts);
             }
@@ -752,16 +821,16 @@ const StudentProfileView = ({ student, backAction, onEdit }) => {
         }
     };
 
-    const handleAmountChange = (category, val, maxAmount) => {
+    const handleAmountChange = (key, val, maxAmount) => {
         let numVal = Number(val);
-        const remainingDues = maxAmount - (paidAmounts[category] || 0);
+        const remainingDues = maxAmount - (paidAmounts[key] || 0);
         if (numVal > remainingDues) numVal = remainingDues;
         if (numVal < 0) numVal = 0;
-        setPaymentAmounts(prev => ({ ...prev, [category]: val === '' ? '' : numVal }));
+        setPaymentAmounts(prev => ({ ...prev, [key]: val === '' ? '' : numVal }));
     };
 
-    const totalPaying = structures.reduce((sum, s) => sum + Number(paymentAmounts[s.category_name] || 0), 0);
-    const totalDues = structures.reduce((sum, s) => sum + s.amount, 0);
+    const totalPaying = expandedStructures.reduce((sum, s) => sum + Number(paymentAmounts[s.uniqueKey] || 0), 0);
+    const totalDues = expandedStructures.reduce((sum, s) => sum + s.amount, 0);
 
     const handleProcessPayment = () => {
         if (totalPaying === 0) return;
@@ -822,8 +891,17 @@ const StudentProfileView = ({ student, backAction, onEdit }) => {
                     <div className="text-center md:text-left flex-1">
                         <div className="flex flex-col md:flex-row md:items-center gap-4 mb-4">
                             <h2 className="text-5xl font-black tracking-tighter">{student.full_name}</h2>
-                            <div className="bg-white/20 px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest border border-white/20 self-center md:self-auto">
-                                Active Student
+                            <div className="flex items-center gap-2">
+                                <div className="bg-white/20 px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest border border-white/20">
+                                    Active Student
+                                </div>
+                                <button 
+                                    onClick={fetchStructures}
+                                    className="p-2 bg-white/10 hover:bg-white/30 text-white rounded-xl transition-all"
+                                    title="Refresh Fee Data"
+                                >
+                                    <RefreshCcw size={14} />
+                                </button>
                             </div>
                         </div>
                         <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 opacity-80">
@@ -904,19 +982,21 @@ const StudentProfileView = ({ student, backAction, onEdit }) => {
 
                                 <div className="w-full max-w-5xl mx-auto bg-white p-6 rounded-[2rem] border border-slate-100">
                                     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-4">
-                                        {structures.map((s, idx) => {
-                                            const remainingDues = s.amount - (paidAmounts[s.category_name] || 0);
+                                        {expandedStructures.map((s, idx) => {
+                                            const remainingDues = s.amount - (paidAmounts[s.uniqueKey] || 0);
                                             if (remainingDues <= 0) return null;
                                             return (
                                                 <div key={idx} className="w-full">
                                                     <div className="flex justify-between items-end mb-1">
-                                                        <label className="block text-xs font-black text-slate-800 capitalize truncate pr-2">{s.category_name}</label>
+                                                        <label className="block text-xs font-black text-slate-800 capitalize truncate pr-2">
+                                                            {s.category_name} {s.month ? `(${s.month})` : ''}
+                                                        </label>
                                                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Dues : {remainingDues}</span>
                                                     </div>
                                                     <input
                                                         type="number"
-                                                        value={paymentAmounts[s.category_name] !== undefined ? paymentAmounts[s.category_name] : ''}
-                                                        onChange={(e) => handleAmountChange(s.category_name, e.target.value, s.amount)}
+                                                        value={paymentAmounts[s.uniqueKey] !== undefined ? paymentAmounts[s.uniqueKey] : ''}
+                                                        onChange={(e) => handleAmountChange(s.uniqueKey, e.target.value, s.amount)}
                                                         className="w-full bg-slate-50 border border-slate-200 px-3 py-2.5 rounded-lg text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm"
                                                     />
                                                 </div>
@@ -1005,29 +1085,84 @@ const StudentProfileView = ({ student, backAction, onEdit }) => {
                     title="Generated fees for this student"
                     icon={<Wallet className="text-indigo-500" size={24} />}
                     action={
-                        <button onClick={() => setIsPaying(true)} className="bg-[#0BC48B] hover:bg-[#0BA676] text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-[#0BC48B]/30 active:scale-95 whitespace-nowrap">
+                        <button onClick={() => startPayment()} className="bg-[#0BC48B] hover:bg-[#0BA676] text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-[#0BC48B]/30 active:scale-95 whitespace-nowrap">
                             Collect Fee
                         </button>
                     }
                 >
-                    <div className="space-y-4 bg-slate-50/50 p-6 rounded-[2.5rem] border border-slate-100">
-                        {structures.length > 0 ? structures.map((struct, idx) => (
-                            <div key={idx} className="flex justify-between items-center bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-                                <div>
-                                    <span className="block text-sm font-bold text-slate-700 capitalize">{struct.category_name}</span>
-                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">{struct.frequency}</span>
+                    <div className="space-y-4 bg-slate-50/50 p-6 rounded-[2.5rem] border border-slate-100 max-h-[500px] overflow-y-auto no-scrollbar">
+                        {expandedStructures.length > 0 ? expandedStructures.map((struct, idx) => {
+                            const dueDate = struct.due_date ? new Date(struct.due_date) : null;
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+
+                            let isUrgent = false;
+                            if (dueDate) {
+                                const diffTime = dueDate.getTime() - today.getTime();
+                                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                isUrgent = diffDays <= 7;
+                            } else if (struct.frequency === 'Monthly' && struct.due_day) {
+                                // For monthly, check if the current month's due day is near
+                                const currentMonthIdx = new Date().getMonth();
+                                const academicMonthIdx = ACADEMIC_MONTHS.indexOf(new Date().toLocaleString('default', { month: 'short' }));
+                                if (struct.month === ACADEMIC_MONTHS[academicMonthIdx]) {
+                                    const dayOfMonth = new Date().getDate();
+                                    isUrgent = struct.due_day - dayOfMonth <= 7 && struct.due_day >= dayOfMonth;
+                                }
+                            }
+
+                            const isPaid = (paidAmounts[struct.uniqueKey] || 0) >= struct.amount;
+
+                            return (
+                                <div key={idx} className={`flex justify-between items-center bg-white p-5 rounded-2xl shadow-sm border ${isUrgent && !isPaid ? 'border-rose-200 bg-rose-50/30' : 'border-slate-100'}`}>
+                                    <div>
+                                        <span className={`block text-sm font-bold capitalize ${isUrgent && !isPaid ? 'text-rose-600' : 'text-slate-700'}`}>
+                                            {struct.category_name} {struct.month ? `(${struct.month})` : ''}
+                                        </span>
+                                        <div className="flex items-center gap-3 mt-1">
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{struct.frequency}</span>
+                                            {struct.due_date && (
+                                                <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${isUrgent && !isPaid ? 'bg-rose-500 text-white animate-blink' : 'bg-slate-100 text-slate-500'}`}>
+                                                    Due: {new Date(struct.due_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                                </span>
+                                            )}
+                                            {struct.frequency === 'Monthly' && struct.due_day && (
+                                                <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${isUrgent && !isPaid ? 'bg-rose-500 text-white animate-blink' : 'bg-indigo-50 text-indigo-500'}`}>
+                                                    Due Day: {struct.due_day}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-6">
+                                        <div className="text-right">
+                                            <span className={`block text-lg font-black ${isUrgent && !isPaid ? 'text-rose-600' : 'text-slate-900'}`}>
+                                                ₹{struct.amount.toLocaleString('en-IN')}
+                                            </span>
+                                            {isPaid ? (
+                                                <span className="text-[9px] font-black text-[#0BC48B] uppercase tracking-widest flex items-center justify-end gap-1">
+                                                    <CheckCircle2 size={10} /> Paid
+                                                </span>
+                                            ) : (
+                                                <button
+                                                    onClick={() => startPayment(struct)}
+                                                    className="mt-1 text-[9px] font-black text-indigo-600 hover:text-indigo-800 uppercase tracking-widest underline underline-offset-4 decoration-2 decoration-indigo-200 hover:decoration-indigo-600 transition-all"
+                                                >
+                                                    Pay Now
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
-                                <span className="text-lg font-black text-slate-900">₹{struct.amount.toLocaleString('en-IN')}</span>
-                            </div>
-                        )) : (
+                            );
+                        }) : (
                             <div className="text-center py-8">
                                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No fee structure mapped for {student.current_grade}</p>
                             </div>
                         )}
-                        {structures.length > 0 && (
+                        {expandedStructures.length > 0 && (
                             <div className="mt-8 pt-6 border-t border-slate-200 flex justify-between items-end">
-                                <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Total Amount</span>
-                                <span className="text-4xl font-black text-rose-500 tracking-tighter">₹{structures.reduce((acc, curr) => acc + curr.amount, 0).toLocaleString('en-IN')}</span>
+                                <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Yearly Total</span>
+                                <span className="text-4xl font-black text-rose-500 tracking-tighter">₹{totalDuesOverall.toLocaleString('en-IN')}</span>
                             </div>
                         )}
                     </div>
@@ -1061,6 +1196,21 @@ const StudentProfileView = ({ student, backAction, onEdit }) => {
                     <div className="overflow-x-auto w-full">
                         <table className="w-full text-sm text-center border-collapse min-w-[800px]">
                             <tbody>
+                                <tr className="bg-slate-50">
+                                    <td className="p-3 font-bold text-right border-r border-b border-slate-200">Due Date</td>
+                                    {structures.map(s => {
+                                        const dueDate = s.due_date ? new Date(s.due_date) : null;
+                                        const today = new Date();
+                                        today.setHours(0, 0, 0, 0);
+                                        const isUrgent = dueDate && ((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24) <= 7) && (paidAmounts[s.category_name] || 0) < s.amount;
+                                        return (
+                                            <td key={s.category_name} className={`p-3 border-r border-b border-slate-200 text-[10px] font-black uppercase tracking-tighter ${isUrgent ? 'text-rose-600 animate-blink bg-rose-50' : 'text-slate-500'}`}>
+                                                {s.due_date ? new Date(s.due_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : 'N/A'}
+                                            </td>
+                                        );
+                                    })}
+                                    <td className="p-3 font-bold border-b border-slate-200">-</td>
+                                </tr>
                                 <tr className="bg-blue-100/50">
                                     <td className="p-3 font-bold text-right border-r border-b border-slate-200">Generated Amount</td>
                                     {structures.map(s => <td key={s.category_name} className="p-3 border-r border-b border-slate-200">{s.amount}</td>)}
