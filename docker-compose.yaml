@@ -4,7 +4,7 @@ services:
   backend:
     build:
       context: ./backend
-    container_name: yokobaine_backend
+    container_name: yokobaine_llm_backend
     restart: always
     environment:
       - DB_USER=${DB_USER:-root}
@@ -24,7 +24,7 @@ services:
   frontend:
     build:
       context: ./frontend
-    container_name: yokobaine_frontend
+    container_name: yokobaine_llm_frontend
     restart: always
     depends_on:
       - backend
