@@ -778,25 +778,63 @@ const StudentProfileView = ({ student, backAction, onEdit }) => {
                             monthsToGenerate = [...ACADEMIC_MONTHS.slice(startIdx), ...ACADEMIC_MONTHS.slice(0, endIdx + 1)];
                         }
 
+                        let generated = [];
                         monthsToGenerate.forEach(m => {
                             if (isInvoiced(m, s.invoice_day || s.due_day)) {
-                                expanded.push({ ...s, month: m, uniqueKey: `${s.category_name}_${m}` });
+                                generated.push({ ...s, month: m, uniqueKey: `${s.category_name}_${m}` });
                             }
                         });
+                        if (generated.length > 0) expanded.push(generated[generated.length - 1]);
                     } else if (s.frequency === 'Quarterly') {
-                        const qMonths = ['Jun', 'Sep', 'Dec', 'Mar'];
-                        qMonths.forEach((m, idx) => {
+                        const qMonthsAll = ['Jun', 'Sep', 'Dec', 'Mar'];
+                        const qNames = ['Q1', 'Q2', 'Q3', 'Q4'];
+                        const startIdx = qNames.indexOf(s.month_from || 'Q1');
+                        const endIdx = qNames.indexOf(s.month_to || 'Q4');
+                        let qIndices = [];
+                        if (startIdx !== -1 && endIdx !== -1) {
+                            if (startIdx <= endIdx) {
+                                for(let i=startIdx; i<=endIdx; i++) qIndices.push(i);
+                            } else {
+                                for(let i=startIdx; i<4; i++) qIndices.push(i);
+                                for(let i=0; i<=endIdx; i++) qIndices.push(i);
+                            }
+                        } else {
+                            qIndices = [0, 1, 2, 3];
+                        }
+                        
+                        let generated = [];
+                        qIndices.forEach((idx) => {
+                            const m = qMonthsAll[idx];
                             if (isInvoiced(m, s.invoice_day || s.due_day)) {
-                                expanded.push({ ...s, month: `Q${idx+1} (${m})`, uniqueKey: `${s.category_name}_Q${idx+1}` });
+                                generated.push({ ...s, month: `Q${idx+1} (${m})`, uniqueKey: `${s.category_name}_Q${idx+1}` });
                             }
                         });
+                        if (generated.length > 0) expanded.push(generated[generated.length - 1]);
                     } else if (s.frequency === 'Half-Yearly') {
-                        const hMonths = ['Jun', 'Dec'];
-                        hMonths.forEach((m, idx) => {
+                        const hMonthsAll = ['Jun', 'Dec'];
+                        const hNames = ['H1', 'H2'];
+                        const startIdx = hNames.indexOf(s.month_from || 'H1');
+                        const endIdx = hNames.indexOf(s.month_to || 'H2');
+                        let hIndices = [];
+                        if (startIdx !== -1 && endIdx !== -1) {
+                            if (startIdx <= endIdx) {
+                                for(let i=startIdx; i<=endIdx; i++) hIndices.push(i);
+                            } else {
+                                for(let i=startIdx; i<2; i++) hIndices.push(i);
+                                for(let i=0; i<=endIdx; i++) hIndices.push(i);
+                            }
+                        } else {
+                            hIndices = [0, 1];
+                        }
+
+                        let generated = [];
+                        hIndices.forEach((idx) => {
+                            const m = hMonthsAll[idx];
                             if (isInvoiced(m, s.invoice_day || s.due_day)) {
-                                expanded.push({ ...s, month: `H${idx+1} (${m})`, uniqueKey: `${s.category_name}_H${idx+1}` });
+                                generated.push({ ...s, month: `H${idx+1} (${m})`, uniqueKey: `${s.category_name}_H${idx+1}` });
                             }
                         });
+                        if (generated.length > 0) expanded.push(generated[generated.length - 1]);
                     } else {
                         // Yearly or other
                         if (s.due_date) {
@@ -1091,7 +1129,7 @@ const StudentProfileView = ({ student, backAction, onEdit }) => {
                     }
                 >
                     <div className="space-y-4 bg-slate-50/50 p-6 rounded-[2.5rem] border border-slate-100 max-h-[500px] overflow-y-auto no-scrollbar">
-                        {expandedStructures.length > 0 ? expandedStructures.map((struct, idx) => {
+                        {expandedStructures.filter(struct => (paidAmounts[struct.uniqueKey] || 0) < struct.amount).length > 0 ? expandedStructures.filter(struct => (paidAmounts[struct.uniqueKey] || 0) < struct.amount).map((struct, idx) => {
                             const dueDate = struct.due_date ? new Date(struct.due_date) : null;
                             const today = new Date();
                             today.setHours(0, 0, 0, 0);
@@ -1126,9 +1164,9 @@ const StudentProfileView = ({ student, backAction, onEdit }) => {
                                                     Due: {new Date(struct.due_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
                                                 </span>
                                             )}
-                                            {struct.frequency === 'Monthly' && struct.due_day && (
+                                            {struct.frequency !== 'Yearly' && struct.frequency !== 'One-Time' && struct.due_day && (
                                                 <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${isUrgent && !isPaid ? 'bg-rose-500 text-white animate-blink' : 'bg-indigo-50 text-indigo-500'}`}>
-                                                    Due Day: {struct.due_day}
+                                                    Due: {struct.month?.replace(/\(.*\)/, '')?.trim()} {struct.due_day}
                                                 </span>
                                             )}
                                         </div>
@@ -1156,13 +1194,7 @@ const StudentProfileView = ({ student, backAction, onEdit }) => {
                             );
                         }) : (
                             <div className="text-center py-8">
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No fee structure mapped for {student.current_grade}</p>
-                            </div>
-                        )}
-                        {expandedStructures.length > 0 && (
-                            <div className="mt-8 pt-6 border-t border-slate-200 flex justify-between items-end">
-                                <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Yearly Total</span>
-                                <span className="text-4xl font-black text-rose-500 tracking-tighter">₹{totalDuesOverall.toLocaleString('en-IN')}</span>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No pending fees to collect</p>
                             </div>
                         )}
                     </div>
@@ -1204,7 +1236,7 @@ const StudentProfileView = ({ student, backAction, onEdit }) => {
                                         today.setHours(0, 0, 0, 0);
                                         const isUrgent = dueDate && ((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24) <= 7) && (paidAmounts[s.category_name] || 0) < s.amount;
                                         return (
-                                            <td key={s.category_name} className={`p-3 border-r border-b border-slate-200 text-[10px] font-black uppercase tracking-tighter ${isUrgent ? 'text-rose-600 animate-blink bg-rose-50' : 'text-slate-500'}`}>
+                                            <td key={`${s.category_name}-${s.frequency}`} className={`p-3 border-r border-b border-slate-200 text-[10px] font-black uppercase tracking-tighter ${isUrgent ? 'text-rose-600 animate-blink bg-rose-50' : 'text-slate-500'}`}>
                                                 {s.due_date ? new Date(s.due_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : 'N/A'}
                                             </td>
                                         );
@@ -1213,27 +1245,27 @@ const StudentProfileView = ({ student, backAction, onEdit }) => {
                                 </tr>
                                 <tr className="bg-blue-100/50">
                                     <td className="p-3 font-bold text-right border-r border-b border-slate-200">Generated Amount</td>
-                                    {structures.map(s => <td key={s.category_name} className="p-3 border-r border-b border-slate-200">{s.amount}</td>)}
+                                    {structures.map(s => <td key={`${s.category_name}-${s.frequency}`} className="p-3 border-r border-b border-slate-200">{s.amount}</td>)}
                                     <td className="p-3 font-bold border-b border-slate-200">{totalDuesOverall}</td>
                                 </tr>
                                 <tr className="bg-red-50/50">
                                     <td className="p-3 font-bold text-red-500 text-right border-r border-b border-slate-200">Discount Amt.</td>
-                                    {structures.map(s => <td key={s.category_name} className="p-3 border-r border-b border-slate-200 text-red-500">0</td>)}
+                                    {structures.map(s => <td key={`${s.category_name}-${s.frequency}`} className="p-3 border-r border-b border-slate-200 text-red-500">0</td>)}
                                     <td className="p-3 font-bold text-red-500 border-b border-slate-200">0</td>
                                 </tr>
                                 <tr className="bg-green-50/50">
                                     <td className="p-3 font-bold text-green-600 text-right border-r border-b border-slate-200">Payable Amt.</td>
-                                    {structures.map(s => <td key={s.category_name} className="p-3 border-r border-b border-slate-200 text-green-600">{s.amount}</td>)}
+                                    {structures.map(s => <td key={`${s.category_name}-${s.frequency}`} className="p-3 border-r border-b border-slate-200 text-green-600">{s.amount}</td>)}
                                     <td className="p-3 font-bold text-green-600 border-b border-slate-200">{totalDuesOverall}</td>
                                 </tr>
                                 <tr className="bg-blue-50">
                                     <td className="p-3 font-bold text-blue-600 text-right border-r border-b border-slate-200">Total Paid Amt.</td>
-                                    {structures.map(s => <td key={s.category_name} className="p-3 border-r border-b border-slate-200 text-blue-600">{paidAmounts[s.category_name] || 0}</td>)}
+                                    {structures.map(s => <td key={`${s.category_name}-${s.frequency}`} className="p-3 border-r border-b border-slate-200 text-blue-600">{paidAmounts[s.category_name] || 0}</td>)}
                                     <td className="p-3 font-bold text-blue-600 border-b border-slate-200">{totalPaidOverall}</td>
                                 </tr>
                                 <tr className="bg-red-50/50">
                                     <td className="p-3 font-bold text-slate-800 text-right border-r border-b border-slate-200">Dues / Remaining Amt.</td>
-                                    {structures.map(s => <td key={s.category_name} className="p-3 border-r border-b border-slate-200">{s.amount - (paidAmounts[s.category_name] || 0)}</td>)}
+                                    {structures.map(s => <td key={`${s.category_name}-${s.frequency}`} className="p-3 border-r border-b border-slate-200">{s.amount - (paidAmounts[s.category_name] || 0)}</td>)}
                                     <td className="p-3 font-bold border-b border-slate-200">{totalRemainingOverall}</td>
                                 </tr>
                             </tbody>
@@ -1248,7 +1280,7 @@ const StudentProfileView = ({ student, backAction, onEdit }) => {
                                     <th className="p-4 border-r border-slate-700 font-bold text-xs">Receipt No.</th>
                                     <th className="p-4 border-r border-slate-700 font-bold text-xs">Payment Date</th>
                                     <th className="p-4 border-r border-slate-700 font-bold text-xs">Paid for Month</th>
-                                    {structures.map(s => <th key={s.category_name} className="p-4 border-r border-slate-700 font-bold text-xs break-words max-w-[100px]">{s.category_name}</th>)}
+                                    {structures.map(s => <th key={`${s.category_name}-${s.frequency}`} className="p-4 border-r border-slate-700 font-bold text-xs break-words max-w-[100px]">{s.category_name}</th>)}
                                     <th className="p-4 border-r border-slate-700 font-bold text-xs">Total</th>
                                     <th className="p-4 font-bold text-xs">Action</th>
                                 </tr>
@@ -1265,7 +1297,7 @@ const StudentProfileView = ({ student, backAction, onEdit }) => {
                                         <td className="p-3 border-r border-b border-slate-200">{r.id}</td>
                                         <td className="p-3 border-r border-b border-slate-200 whitespace-nowrap">{r.date}</td>
                                         <td className="p-3 border-r border-b border-slate-200">{r.month}</td>
-                                        {structures.map(s => <td key={s.category_name} className="p-3 border-r border-b border-slate-200">{r.breakdown[s.category_name] || ''}</td>)}
+                                        {structures.map(s => <td key={`${s.category_name}-${s.frequency}`} className="p-3 border-r border-b border-slate-200">{r.breakdown[s.category_name] || ''}</td>)}
                                         <td className="p-3 border-r border-b border-slate-200 font-black">₹{r.total}</td>
                                         <td className="p-3 border-b border-slate-200">
                                             <button className="text-red-500 font-bold hover:underline flex flex-col items-center justify-center w-full">
