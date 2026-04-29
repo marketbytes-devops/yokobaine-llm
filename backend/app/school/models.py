@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, DateTime, Boolean, func, Table, ForeignKey, JSON
+from sqlalchemy import Column, Integer, String, Date, DateTime, Boolean, func, Table, ForeignKey, JSON, Text
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -20,7 +20,7 @@ class SchoolProfile(Base):
     principal_name = Column(String(150), nullable=True)
     contact_email  = Column(String(150), nullable=True)
     phone_number   = Column(String(30),  nullable=True)
-    logo_url       = Column(String(500), nullable=True)
+    logo_url       = Column(Text, nullable=True) 
     is_active      = Column(Boolean, default=True)
     created_at     = Column(DateTime, server_default=func.now())
     updated_at     = Column(DateTime, server_default=func.now(), onupdate=func.now())

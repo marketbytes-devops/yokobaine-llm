@@ -35,14 +35,14 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
                 <SideItem icon={<MapPin size={18} />} label="School Structure" active={activeTab === "Structure"} onClick={() => setActiveTab("Structure")} />
                 <SideItem icon={<Clock size={18} />} label="Timetable Builder" active={activeTab === "Reports"} onClick={() => setActiveTab("Reports")} />
                 <SideItem icon={<GraduationCap size={18} />} label="Student & Parent Ledger" active={activeTab === "Ledger"} onClick={() => setActiveTab("Ledger")} />
-                
+
                 {/* Financial Management with Sub-menu */}
                 <div>
-                    <SideItem 
-                        icon={<Wallet size={18} />} 
-                        label="Financial Management" 
-                        active={activeTab.startsWith("Finance")} 
-                        onClick={() => setActiveTab(activeTab.startsWith("Finance") ? "Dashboard" : "Finance-Categories")} 
+                    <SideItem
+                        icon={<Wallet size={18} />}
+                        label="Financial Management"
+                        active={activeTab.startsWith("Finance")}
+                        onClick={() => setActiveTab(activeTab.startsWith("Finance") ? "Dashboard" : "Finance-Categories")}
                         hasSubmenu
                         isOpen={activeTab.startsWith("Finance")}
                     />
@@ -56,7 +56,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
                 </div>
 
                 <SideItem icon={<Megaphone size={18} />} label="Noticeboard & Broadcast" active={activeTab === "Broadcast"} onClick={() => setActiveTab("Broadcast")} />
-                <SideItem icon={<Shield size={18} />} label="Roles & Permissions" active={activeTab === "Roles"} onClick={() => setActiveTab("Roles")} />
+                <SideItem icon={<Shield size={18} />} label="Roles Management" active={activeTab === "Roles"} onClick={() => setActiveTab("Roles")} />
                 <SideItem icon={<UserPlus size={18} />} label="User Management & RBAC" active={activeTab === "RBAC"} onClick={() => setActiveTab("RBAC")} />
                 {/* <SideItem icon={<Settings size={18} />} label="Settings & Security" active={activeTab === "Settings"} onClick={() => setActiveTab("Settings")} /> */}
             </nav>
@@ -87,13 +87,12 @@ const SideItem = ({ icon, label, active, onClick, hasSubmenu, isOpen }) => (
 );
 
 const SubItem = ({ label, active, onClick }) => (
-    <div 
-        onClick={onClick} 
-        className={`px-4 py-2 rounded-xl cursor-pointer text-xs font-bold tracking-tight transition-all ${
-            active 
-            ? "text-[#0BC48B] bg-[#0BC48B]/5 shadow-sm" 
-            : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
-        }`}
+    <div
+        onClick={onClick}
+        className={`px-4 py-2 rounded-xl cursor-pointer text-xs font-bold tracking-tight transition-all ${active
+                ? "text-[#0BC48B] bg-[#0BC48B]/5 shadow-sm"
+                : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
+            }`}
     >
         {label}
     </div>

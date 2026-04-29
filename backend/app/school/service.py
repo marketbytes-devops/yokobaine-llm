@@ -1,6 +1,6 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, text
 from app.school.models import SchoolProfile, AcademicTerm, Teacher, SchoolSection, SchoolClass
 from app.school.schemas import (
     SchoolProfileCreate, SchoolProfileUpdate, 
@@ -13,6 +13,13 @@ def get_school_profile(db: Session):
     return db.query(SchoolProfile).first()
 
 def create_school_profile(db: Session, data: SchoolProfileCreate):
+    # Auto-fix: Ensure the database column can handle large images
+    try:
+        db.execute(text("ALTER TABLE school_profile MODIFY logo_url LONGTEXT"))
+        db.commit()
+    except Exception:
+        db.rollback() # Ignore if already modified or not MySQL
+
     profile = SchoolProfile(**data.model_dump())
     db.add(profile)
     db.commit()
@@ -20,6 +27,13 @@ def create_school_profile(db: Session, data: SchoolProfileCreate):
     return profile
 
 def update_school_profile(db: Session, data: SchoolProfileUpdate):
+    # Auto-fix: Ensure the database column can handle large images
+    try:
+        db.execute(text("ALTER TABLE school_profile MODIFY logo_url LONGTEXT"))
+        db.commit()
+    except Exception:
+        db.rollback() 
+
     profile = get_school_profile(db)
     if not profile:
         return None
@@ -209,3 +223,46 @@ def get_class_summaries(db: Session, section_name: str = None):
                 "section_name": ss.academic_level, "teacher_name": "Unassigned", "student_count": ss.student_count
             })
     return sorted(summaries, key=lambda x: (x["class_name"], x["section_identifier"] or ""))
+
+def get_dashboard_stats(db: Session):
+    # Counts
+    school_count = db.query(SchoolProfile).count()
+    teacher_count = db.query(Teacher).count()
+    class_count = db.query(SchoolClass).count()
+    section_count = db.query(SchoolSection).count()
+
+    # Recent Schools
+    recent_schools = db.query(SchoolProfile).order_by(SchoolProfile.created_at.desc()).limit(4).all()
+    
+    # Section Distribution for Chart
+    section_data = db.query(
+        SchoolSection.name,
+        func.count(SchoolClass.id).label("class_count")
+    ).join(SchoolClass).group_by(SchoolSection.name).all()
+
+    # Academic Term Info
+    term = get_active_term(db)
+    
+    return {
+        "stats": {
+            "total_schools": school_count,
+            "total_teachers": teacher_count,
+            "total_classes": class_count,
+            "total_sections": section_count
+        },
+        "recent_schools": [
+            {
+                "id": s.id,
+                "name": s.school_name,
+                "principal": s.principal_name,
+                "logo": s.logo_url,
+                "reg": s.reg_number
+            } for s in recent_schools
+        ],
+        "sections": [{"name": s.name, "count": s.class_count} for s in section_data],
+        "term": {
+            "year": term.academic_year if term else "N/A",
+            "start": term.term_start_date if term else None,
+            "end": term.term_end_date if term else None
+        }
+    }

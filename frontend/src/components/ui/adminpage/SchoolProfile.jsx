@@ -52,8 +52,6 @@ export const SchoolProfileModule = () => {
 
             if (Object.keys(consolidatedData).length > 0) {
                 setSavedViewData(consolidatedData);
-                // We keep formData sync'd initially so user can edit existing data
-                setFormData(prev => ({ ...prev, ...consolidatedData }));
             }
         } catch (error) {
             console.error("Error fetching data:", error);
@@ -63,6 +61,49 @@ export const SchoolProfileModule = () => {
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleLogoChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    // Create a canvas to compress the image
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+
+                    // Max dimensions for the logo
+                    const MAX_WIDTH = 800;
+                    const MAX_HEIGHT = 800;
+
+                    if (width > height) {
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                    } else {
+                        if (height > MAX_HEIGHT) {
+                            width *= MAX_HEIGHT / height;
+                            height = MAX_HEIGHT;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // Compress to JPEG with 0.7 quality
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                    setFormData(prev => ({ ...prev, logo_url: dataUrl }));
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
     };
 
     const handleSave = async () => {
@@ -79,11 +120,21 @@ export const SchoolProfileModule = () => {
             };
 
             const profileMethod = profileExists ? "PUT" : "POST";
-            await fetch(`${API_BASE}/profile`, {
+            const payload = JSON.stringify(profileData);
+            console.log(`Saving Profile to: ${API_BASE}/profile`);
+            console.log(`Method: ${profileMethod}`);
+            console.log(`Payload Size: ${(payload.length / 1024).toFixed(2)} KB`);
+
+            const profileRes = await fetch(`${API_BASE}/profile`, {
                 method: profileMethod,
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(profileData)
+                body: payload
             });
+
+            if (!profileRes.ok) {
+                const errorData = await profileRes.json();
+                throw new Error(errorData.detail || "Failed to save profile");
+            }
 
             // 2. Save Term
             const termData = {
@@ -92,20 +143,24 @@ export const SchoolProfileModule = () => {
                 term_end_date: formData.term_end_date || null
             };
             
-            await fetch(`${API_BASE}/term`, {
+            const termRes = await fetch(`${API_BASE}/term`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(termData)
             });
 
-            // Update the display view with current form data before clearing
-            setSavedViewData({ ...formData });
-            setProfileExists(true);
+            if (!termRes.ok) {
+                const errorData = await termRes.json();
+                throw new Error(errorData.detail || "Failed to save academic term");
+            }
 
+            // Update the display view with current form data
+            setSavedViewData({ ...formData });
+            
             // Switch to the View Tab
             setSubTab("School's Profile");
 
-            // CLEAR FORM: Make settings page clean
+            // CLEAR FORM: Make settings page clean for next profile
             setFormData({
                 school_name: "",
                 reg_number: "",
@@ -118,8 +173,13 @@ export const SchoolProfileModule = () => {
                 term_end_date: ""
             });
 
+            // Reset profileExists if the user wants to add "another profile" 
+            // This ensures the next save is a POST (new entry) rather than a PUT (update)
+            setProfileExists(false);
+
         } catch (error) {
             console.error("Error saving data:", error);
+            alert(error.message || "An unexpected error occurred while saving.");
         } finally {
             setLoading(false);
         }
@@ -170,7 +230,7 @@ export const SchoolProfileModule = () => {
                                     </h3>
                                     <div className="space-y-6">
                                         <InputGroup label="School Name" name="school_name" value={formData.school_name} onChange={handleInputChange} placeholder="Enter full school name" type="text" icon={<School size={18} />} />
-                                        <InputGroup label="Affiliation Number" name="reg_number" value={formData.reg_number} onChange={handleInputChange} placeholder="e.g., CBSE/State Board ID" type="text" icon={<CheckCircle2 size={18} />} />
+                                        <InputGroup label="Registration/Affiliation Number" name="reg_number" value={formData.reg_number} onChange={handleInputChange} placeholder="e.g., CBSE/State Board ID" type="text" icon={<CheckCircle2 size={18} />} />
                                         <InputGroup label="Principal Name" name="principal_name" value={formData.principal_name} onChange={handleInputChange} placeholder="Name of the Principal" type="text" icon={<User size={18} />} />
                                     </div>
                                 </section>
@@ -214,13 +274,29 @@ export const SchoolProfileModule = () => {
                                         </div>
                                         Visual Identity
                                     </h3>
-                                    <label className="border-2 border-dashed border-slate-200 rounded-[2.5rem] p-10 flex flex-col items-center justify-center text-center hover:bg-slate-50 hover:border-[#0BC48B] transition-all cursor-pointer group/upload bg-slate-50/50">
-                                        <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center text-slate-400 group-hover/upload:bg-[#0BC48B]/10 group-hover/upload:text-[#0BC48B] transition-all mb-4 shadow-sm border border-slate-100 ring-4 ring-slate-100/50">
-                                            <UploadCloud size={28} />
-                                        </div>
-                                        <h4 className="font-black text-sm text-slate-800 mb-1 tracking-tight group-hover/upload:text-[#0BC48B]">Click to upload logo</h4>
+                                    <label className="border-2 border-dashed border-slate-200 rounded-[2.5rem] p-10 flex flex-col items-center justify-center text-center hover:bg-slate-50 hover:border-[#0BC48B] transition-all cursor-pointer group/upload bg-slate-50/50 min-h-[240px]">
+                                        {formData.logo_url ? (
+                                            <div className="relative w-32 h-32 mb-4">
+                                                <img src={formData.logo_url} alt="School Logo" className="w-full h-full object-cover rounded-3xl shadow-md border border-slate-100" />
+                                                <div className="absolute inset-0 bg-black/40 rounded-3xl opacity-0 group-hover/upload:opacity-100 flex items-center justify-center transition-opacity">
+                                                    <UploadCloud size={24} className="text-white" />
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center text-slate-400 group-hover/upload:bg-[#0BC48B]/10 group-hover/upload:text-[#0BC48B] transition-all mb-4 shadow-sm border border-slate-100 ring-4 ring-slate-100/50">
+                                                <UploadCloud size={28} />
+                                            </div>
+                                        )}
+                                        <h4 className="font-black text-sm text-slate-800 mb-1 tracking-tight group-hover/upload:text-[#0BC48B]">
+                                            {formData.logo_url ? "Click to change logo" : "Click to upload logo"}
+                                        </h4>
                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">JPEG, PNG up to 5MB</p>
-                                        <input type="file" className="hidden" accept="image/jpeg, image/png" />
+                                        <input 
+                                            type="file" 
+                                            className="hidden" 
+                                            accept="image/jpeg, image/png" 
+                                            onChange={handleLogoChange}
+                                        />
                                     </label>
                                 </section>
                             </div>
@@ -258,8 +334,12 @@ export const SchoolProfileModule = () => {
                             ) : (
                                 <div className="max-w-4xl mx-auto flex flex-col items-center">
                                     {/* School Hero */}
-                                    <div className="w-32 h-32 bg-slate-50 rounded-[2.5rem] border border-slate-100 flex items-center justify-center mb-8 shadow-inner ring-8 ring-slate-50/50">
-                                        <School size={60} className="text-slate-200" />
+                                    <div className="w-32 h-32 bg-slate-50 rounded-[2.5rem] border border-slate-100 flex items-center justify-center mb-8 shadow-inner ring-8 ring-slate-50/50 overflow-hidden">
+                                        {savedViewData.logo_url ? (
+                                            <img src={savedViewData.logo_url} alt="School Logo" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <School size={60} className="text-slate-200" />
+                                        )}
                                     </div>
                                     
                                     <h1 className="text-5xl lg:text-6xl font-black text-slate-900 tracking-tighter text-center mb-4">{savedViewData.school_name || "School Name Not Set"}</h1>
@@ -270,9 +350,9 @@ export const SchoolProfileModule = () => {
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
                                         <PreviewCard icon={<Info size={20} />} title="Registration Detail" value={savedViewData.reg_number || "Not provided"} />
-                                        <PreviewCard icon={<User size={20} />} title="Leadership" value={savedViewData.principal_name || "Not provided"} />
+                                        <PreviewCard icon={<User size={20} />} title="Principal Name" value={savedViewData.principal_name || "Not provided"} />
                                         <PreviewCard icon={<Mail size={20} />} title="Email Address" value={savedViewData.contact_email || "Not provided"} />
-                                        <PreviewCard icon={<Phone size={20} />} title="Phone Support" value={savedViewData.phone_number || "Not provided"} />
+                                        <PreviewCard icon={<Phone size={20} />} title="Phone Number" value={savedViewData.phone_number || "Not provided"} />
                                         <div className="col-span-1 md:col-span-2 mt-4 p-8 bg-slate-50 rounded-[2.5rem] flex flex-col sm:flex-row items-center justify-between gap-6 border border-slate-100">
                                             <div className="flex items-center gap-6">
                                                 <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-orange-500 shadow-sm border border-slate-100">
@@ -300,6 +380,7 @@ export const SchoolProfileModule = () => {
                                     <button 
                                         onClick={() => {
                                             setFormData({ ...savedViewData }); // Repopulate form when editing
+                                            setProfileExists(true); // Ensure next save is an update
                                             setSubTab("Settings");
                                         }}
                                         className="mt-16 text-slate-400 font-black text-xs uppercase tracking-widest hover:text-slate-900 transition-colors underline decoration-slate-200 underline-offset-8"

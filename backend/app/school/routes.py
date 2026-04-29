@@ -13,6 +13,11 @@ from typing import List, Optional
 
 router = APIRouter(prefix="/api/v1/school", tags=["School"])
 
+@router.get("/dashboard/stats")
+def get_dashboard_summary(db: Session = Depends(get_db)):
+    """Get summarized statistics for the dashboard"""
+    return service.get_dashboard_stats(db)
+
 @router.get("/profile", response_model=SchoolProfileResponse)
 def get_profile(db: Session = Depends(get_db)):
     profile = service.get_school_profile(db)
